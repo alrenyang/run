@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>환영합니다!</title>
+    <title>관리자 대시보드</title>
     <style>
         :root {
-            --primary-color: #3498db;
-            --secondary-color: #2c3e50;
-            --text-color: #333;
-            --bg-color: #f4f7f6;
+            --sidebar-width: 240px;
+            --primary-color: #4f46e5;
+            --bg-light: #f9fafb;
+            --sidebar-bg: #111827;
+            --sidebar-hover: #1f2937;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
         }
 
         * {
@@ -19,70 +23,216 @@
         }
 
         body {
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-main);
             display: flex;
-            justify-content: center;
-            align-items: center;
             min-height: 100vh;
-            line-height: 1.6;
         }
 
-        .container {
+        /* Sidebar */
+        aside {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 2rem 1.5rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            border-bottom: 1px solid var(--sidebar-hover);
+        }
+
+        nav {
+            flex: 1;
+            padding: 1rem 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: #d1d5db;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .nav-item:hover {
+            background-color: var(--sidebar-hover);
+            color: white;
+        }
+
+        .nav-item.active {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        .nav-icon {
+            margin-right: 0.75rem;
+            width: 20px;
             text-align: center;
-            background: white;
-            padding: 3rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            max-width: 500px;
-            width: 90%;
-            transition: transform 0.3s ease;
         }
 
-        .container:hover {
-            transform: translateY(-5px);
+        /* Main Content */
+        main {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2rem;
+            max-width: 1200px;
+        }
+
+        header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         h1 {
-            color: var(--secondary-color);
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: var(--text-main);
         }
 
-        p {
-            color: #666;
-            margin-bottom: 2rem;
+        .card {
+            background: white;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
         }
 
-        .btn {
-            display: inline-block;
-            background-color: var(--primary-color);
-            color: white;
-            padding: 0.8rem 2rem;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
+        .section-content {
+            display: none;
         }
 
-        .btn:hover {
-            background-color: #2980b9;
+        .section-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
         }
 
-        footer {
-            margin-top: 2rem;
-            font-size: 0.8rem;
-            color: #999;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            aside {
+                width: 60px;
+            }
+            .sidebar-header span, .nav-item span {
+                display: none;
+            }
+            main {
+                margin-left: 60px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>환영합니다!</h1>
-        <p>기본 웹페이지가 성공적으로 생성되었습니다. <br>이제 당신만의 멋진 내용을 채워보세요.</p>
-        <a href="#" class="btn">시작하기</a>
-        <footer>© 2026 기본 웹페이지</footer>
-    </div>
+
+    <aside>
+        <div class="sidebar-header">
+            <span>DASHBOARD</span>
+        </div>
+        <nav id="sidebar-nav">
+            <a class="nav-item active" data-target="members">
+                <span class="nav-icon">👤</span>
+                <span>회원 관리</span>
+            </a>
+            <a class="nav-item" data-target="records">
+                <span class="nav-icon">📋</span>
+                <span>기록 확인</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main>
+        <header>
+            <h1 id="page-title">회원 관리</h1>
+            <div style="color: var(--text-muted); font-size: 0.875rem;">
+                2026년 2월 28일
+            </div>
+        </header>
+
+        <!-- Members Section -->
+        <div id="members" class="section-content active">
+            <div class="card">
+                <h3 style="margin-bottom: 1rem;">최근 가입 회원</h3>
+                <p style="color: var(--text-muted);">여기에 회원 목록이나 통계 데이터가 표시됩니다.</p>
+                <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="color: var(--text-muted); font-size: 0.875rem;">
+                                <th style="padding: 0.5rem;">이름</th>
+                                <th style="padding: 0.5rem;">이메일</th>
+                                <th style="padding: 0.5rem;">가입일</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 0.5rem; border-bottom: 1px solid var(--border-color);">김철수</td>
+                                <td style="padding: 0.5rem; border-bottom: 1px solid var(--border-color);">chulsoo@example.com</td>
+                                <td style="padding: 0.5rem; border-bottom: 1px solid var(--border-color);">2026-02-27</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 0.5rem; border-bottom: 1px solid var(--border-color);">이영희</td>
+                                <td style="padding: 0.5rem; border-bottom: 1px solid var(--border-color);">younghee@example.com</td>
+                                <td style="padding: 0.5rem; border-bottom: 1px solid var(--border-color);">2026-02-26</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Records Section -->
+        <div id="records" class="section-content">
+            <div class="card">
+                <h3 style="margin-bottom: 1rem;">시스템 로그 / 기록</h3>
+                <p style="color: var(--text-muted);">활동 기록 및 시스템 변경 내역을 확인할 수 있습니다.</p>
+                <div style="margin-top: 2rem; background: #f3f4f6; padding: 1rem; border-radius: 0.5rem; font-family: monospace; font-size: 0.875rem;">
+                    [2026-02-28 09:12:45] 사용자 'admin' 로그인 성공<br>
+                    [2026-02-28 08:30:12] 데이터베이스 백업 완료<br>
+                    [2026-02-27 23:55:01] 일일 정기 점검 수행
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Active class toggle for menu
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                this.classList.add('active');
+
+                // Section toggle
+                const target = this.getAttribute('data-target');
+                document.querySelectorAll('.section-content').forEach(section => {
+                    section.classList.remove('active');
+                });
+                document.getElementById(target).classList.add('active');
+
+                // Title change
+                const title = this.querySelector('span:last-child').innerText;
+                document.getElementById('page-title').innerText = title;
+            });
+        });
+    </script>
 </body>
 </html>
