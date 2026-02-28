@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>관리자 대시보드 - 회원 관리</title>
+    <title>관리자 대시보드 - 회원 관리 (Firebase)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -30,7 +30,7 @@
     <main>
         <header>
             <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                <h1>회원 관리</h1>
+                <h1>회원 관리 <span style="font-size: 0.8rem; color: #10b981;">● 실시간 연동 중</span></h1>
                 <button class="btn btn-primary" onclick="openModal()">
                     <span style="font-size: 1.2rem;">+</span> 추가
                 </button>
@@ -43,7 +43,7 @@
                 <table class="data-table" style="min-width: 600px;">
                     <thead>
                         <tr>
-                            <th style="padding-left: 1.25rem;">ID</th>
+                            <th style="padding-left: 1.25rem;">순번</th>
                             <th>이름</th>
                             <th>총거리(k)</th>
                             <th>횟수</th>
@@ -52,7 +52,9 @@
                         </tr>
                     </thead>
                     <tbody id="member-list">
-                        <!-- JS 렌더링 -->
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">데이터를 불러오는 중...</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -61,31 +63,31 @@
 
     <!-- Popup Modal -->
     <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
-        <div class="modal" id="modal-content">
+        <div class="modal">
             <div class="modal-header">
-                <h3 id="modal-title">회원 추가</h3>
+                <h3 id="modal-title">회원 데이터 등록</h3>
                 <button onclick="closeModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="member-form" onsubmit="event.preventDefault();">
-                    <input type="hidden" id="member-id">
+                    <input type="hidden" id="member-doc-id">
                     <div class="form-group">
                         <label for="name">이름</label>
-                        <input type="text" id="name" class="form-control" placeholder="성함을 입력하세요" autocomplete="off">
+                        <input type="text" id="name" class="form-control" placeholder="성함을 입력하세요">
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
                             <label for="distance">총거리 (km)</label>
-                            <input type="number" id="distance" class="form-control" placeholder="0.0" step="0.1" autocomplete="off">
+                            <input type="number" id="distance" class="form-control" placeholder="0.0" step="0.1">
                         </div>
                         <div class="form-group">
                             <label for="count">횟수 (회)</label>
-                            <input type="number" id="count" class="form-control" placeholder="0" autocomplete="off">
+                            <input type="number" id="count" class="form-control" placeholder="0">
                         </div>
                     </div>
                     <div class="form-group">
                         <label for="pace">페이스 (분'초")</label>
-                        <input type="text" id="pace" class="form-control" placeholder="예: 5'30\"" autocomplete="off">
+                        <input type="text" id="pace" class="form-control" placeholder="예: 5'30\"">
                     </div>
                 </form>
             </div>
@@ -96,110 +98,124 @@
         </div>
     </div>
 
-    <script>
-        let members = JSON.parse(localStorage.getItem('dashboard_running_members')) || [
-            { id: 1, name: '김철수', distance: 125.5, count: 12, pace: "5'10\"" },
-            { id: 2, name: '이영희', distance: 88.2, count: 8, pace: "6'05\"" },
-            { id: 3, name: '박지민', distance: 210.0, count: 20, pace: "4'45\"" }
-        ];
+    <!-- Firebase SDK (Modular) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } 
+        from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        function renderTable() {
+        // 🔥 본인의 Firebase 설정값으로 반드시 교체해 주세요!
+        const firebaseConfig = {
+            apiKey: "AIzaSyD1TE3jtcdcH6UvbfPGIy_IeaVivg2YvPA",
+            authDomain: "run-app-268d5.firebaseapp.com",
+            projectId: "run-app-268d5",
+            storageBucket: "run-app-268d5.firebasestorage.app",
+            messagingSenderId: "1064940196481",
+            appId: "1:1064940196481:web:0408fd1fb557c4b2a2b380"
+        };
+
+        // Firebase 초기화
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const membersCol = collection(db, "members");
+
+        // 데이터 실시간 수신 및 렌더링
+        onSnapshot(query(membersCol, orderBy("name")), (snapshot) => {
             const tbody = document.getElementById('member-list');
             tbody.innerHTML = '';
             
-            members.forEach(member => {
+            if(snapshot.empty) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">등록된 회원이 없습니다.</td></tr>';
+                return;
+            }
+
+            let index = 1;
+            snapshot.forEach((doc) => {
+                const member = doc.data();
                 const tr = document.createElement('tr');
                 
                 tr.innerHTML = `
-                    <td style="padding-left: 1.25rem; color: var(--text-muted); font-size: 0.8rem;">#${member.id}</td>
+                    <td style="padding-left: 1.25rem; color: var(--text-muted); font-size: 0.8rem;">${index++}</td>
                     <td style="font-weight: 600;">${member.name}</td>
                     <td><span style="font-weight: 700; color: var(--primary-color);">${member.distance}</span> km</td>
                     <td>${member.count} 회</td>
                     <td><span style="background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-family: monospace;">${member.pace}</span></td>
                     <td style="padding-right: 1.25rem; text-align: right;">
                         <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
-                            <button class="btn btn-outline btn-sm" onclick="editMember(${member.id})">수정</button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteMember(${member.id})">삭제</button>
+                            <button class="btn btn-outline btn-sm" onclick="window.editMember('${doc.id}', '${member.name}', ${member.distance}, ${member.count}, '${member.pace}')">수정</button>
+                            <button class="btn btn-danger btn-sm" onclick="window.deleteMember('${doc.id}')">삭제</button>
                         </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
-            localStorage.setItem('dashboard_running_members', JSON.stringify(members));
-        }
+        });
 
-        function openModal() {
-            document.getElementById('modal-title').innerText = '회원 데이터 등록';
-            document.getElementById('save-btn').innerText = '등록하기';
-            document.getElementById('member-form').reset();
-            document.getElementById('member-id').value = '';
-            
-            const overlay = document.getElementById('modal-overlay');
-            overlay.style.display = 'flex';
-            setTimeout(() => overlay.classList.add('active'), 10);
-        }
-
-        function closeModal() {
-            const overlay = document.getElementById('modal-overlay');
-            overlay.classList.remove('active');
-            setTimeout(() => {
-                overlay.style.display = 'none';
-            }, 300);
-        }
-
-        function handleOverlayClick(e) {
-            if(e.target.id === 'modal-overlay') closeModal();
-        }
-
-        function saveMember() {
-            const id = document.getElementById('member-id').value;
+        // 전역 함수로 등록 (onclick 호출용)
+        window.saveMember = async () => {
+            const id = document.getElementById('member-doc-id').value;
             const name = document.getElementById('name').value;
-            const distance = document.getElementById('distance').value;
-            const count = document.getElementById('count').value;
+            const distance = parseFloat(document.getElementById('distance').value);
+            const count = parseInt(document.getElementById('count').value);
             const pace = document.getElementById('pace').value;
-            
-            if(!name || !distance || !count || !pace) {
-                alert('모든 기록 정보를 정확히 입력해 주세요.');
+
+            if(!name || isNaN(distance) || isNaN(count) || !pace) {
+                alert('모든 정보를 정확히 입력해 주세요.');
                 return;
             }
 
-            if(id) {
-                const index = members.findIndex(m => m.id == id);
-                members[index] = { ...members[index], name, distance: parseFloat(distance), count: parseInt(count), pace };
-            } else {
-                const newId = members.length > 0 ? Math.max(...members.map(m => m.id)) + 1 : 1;
-                members.push({ id: newId, name, distance: parseFloat(distance), count: parseInt(count), pace });
+            try {
+                if(id) {
+                    await updateDoc(doc(db, "members", id), { name, distance, count, pace });
+                } else {
+                    await addDoc(membersCol, { name, distance, count, pace });
+                }
+                window.closeModal();
+            } catch (e) {
+                console.error("Error: ", e);
+                alert("저장 중 오류가 발생했습니다.");
             }
+        };
 
-            renderTable();
-            closeModal();
-        }
+        window.deleteMember = async (id) => {
+            if(confirm('이 회원의 데이터를 삭제하시겠습니까?')) {
+                await deleteDoc(doc(db, "members", id));
+            }
+        };
 
-        function editMember(id) {
-            const member = members.find(m => m.id === id);
-            if(!member) return;
-
+        window.editMember = (id, name, distance, count, pace) => {
             document.getElementById('modal-title').innerText = '회원 기록 수정';
             document.getElementById('save-btn').innerText = '수정 완료';
-            document.getElementById('member-id').value = member.id;
-            document.getElementById('name').value = member.name;
-            document.getElementById('distance').value = member.distance;
-            document.getElementById('count').value = member.count;
-            document.getElementById('pace').value = member.pace;
+            document.getElementById('member-doc-id').value = id;
+            document.getElementById('name').value = name;
+            document.getElementById('distance').value = distance;
+            document.getElementById('count').value = count;
+            document.getElementById('pace').value = pace;
             
             const overlay = document.getElementById('modal-overlay');
             overlay.style.display = 'flex';
             setTimeout(() => overlay.classList.add('active'), 10);
-        }
+        };
 
-        function deleteMember(id) {
-            if(confirm('이 회원의 데이터를 삭제하시겠습니까?\n삭제된 기록은 복구할 수 없습니다.')) {
-                members = members.filter(m => m.id !== id);
-                renderTable();
-            }
-        }
+        window.openModal = () => {
+            document.getElementById('modal-title').innerText = '신규 회원 등록';
+            document.getElementById('save-btn').innerText = '등록하기';
+            document.getElementById('member-form').reset();
+            document.getElementById('member-doc-id').value = '';
+            const overlay = document.getElementById('modal-overlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
+        };
 
-        renderTable();
+        window.closeModal = () => {
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.remove('active');
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        };
+
+        window.handleOverlayClick = (e) => {
+            if(e.target.classList.contains('modal-overlay')) window.closeModal();
+        };
     </script>
 </body>
 </html>
