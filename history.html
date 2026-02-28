@@ -324,11 +324,30 @@
                     if (logDate >= oneWeekAgo) weeklyDist += log.distance;
                     const weekNum = getWeekNumber(logDate);
                     const weekClass = weekNum % 2 === 0 ? 'week-even' : 'week-odd';
+                    
                     const item = document.createElement('div');
                     item.className = `history-item ${weekClass}`;
+                    item.style.flexDirection = 'column';
+                    item.style.alignItems = 'flex-start';
+
+                    let actionsHtml = '';
+                    if (currentUser.role === 'admin') {
+                        actionsHtml = `
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; justify-content: flex-end; width: 100%;">
+                                <button class="btn btn-danger btn-sm" style="flex: 1; min-height: 40px;" onclick="window.deleteSpecificLog('${log.id}', '${memberId}')">기록삭제</button>
+                            </div>
+                        `;
+                    }
+
                     item.innerHTML = `
-                        <div class="date">${log.date}</div>
-                        <div class="metrics"><span class="dist">${log.distance}km</span><div class="pace">${log.pace}</div></div>
+                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                            <div class="date">${log.date} ${log.location ? `<small style="font-weight:400; color:#64748b;">[${log.location}]</small>` : ''}</div>
+                            <div class="metrics" style="text-align: right;">
+                                <span class="dist" style="display:block;">${log.distance}km</span>
+                                <div class="pace">${log.pace}</div>
+                            </div>
+                        </div>
+                        ${actionsHtml}
                     `;
                     historyContainer.appendChild(item);
                 });
@@ -355,6 +374,34 @@
             overlay.classList.remove('active');
             setTimeout(() => { overlay.style.display = 'none'; }, 300);
         };
+
+        // --- 개별 기록 삭제 기능 (관리자 전용) ---
+        window.deleteSpecificLog = async (logId, memberId) => {
+            if (!confirm('이 기록을 정말 삭제하시겠습니까?')) return;
+            try {
+                await deleteDoc(doc(db, "activity_logs", logId));
+                await recalculateMemberStats(memberId);
+                alert('기록이 삭제되었습니다.');
+                window.closeStatsModal();
+            } catch (e) {
+                alert('삭제 오류: ' + e.message);
+            }
+        };
+
+        async function recalculateMemberStats(memberId) {
+            const q = query(collection(db, "activity_logs"), where("memberId", "==", memberId));
+            const snapshot = await getDocs(q);
+            let totalDist = 0;
+            let totalCount = 0;
+            snapshot.forEach(d => {
+                totalDist += d.data().distance;
+                totalCount += 1;
+            });
+            await updateDoc(doc(db, "members", memberId), {
+                distance: Number(totalDist.toFixed(1)),
+                count: totalCount
+            });
+        }
 
         window.handleOverlayClick = (e) => {
             if(e.target.classList.contains('modal-overlay')) {

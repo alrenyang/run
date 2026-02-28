@@ -246,18 +246,36 @@
                     if (logDate >= oneMonthAgo) monthlyDist += log.distance;
                     if (logDate >= oneWeekAgo) weeklyDist += log.distance;
                     const weekNum = getWeekNumber(logDate);
-                    const weekClass = weekNum % 2 === 0 ? 'week-even' : 'week-odd';
+                    // 항목 추가
                     const item = document.createElement('div');
                     item.className = `history-item ${weekClass}`;
+
+                    let actionsHtml = '';
+                    if (currentUser.role === 'admin') {
+                        actionsHtml = `
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; justify-content: flex-end; width: 100%;">
+                                <button class="btn btn-outline btn-sm" style="flex: 1; min-height: 40px;" onclick="window.editSpecificLog('${docSnap.id}', '${memberId}', '${log.date}', ${log.distance}, '${log.pace}')">기록수정</button>
+                                <button class="btn btn-danger btn-sm" style="flex: 1; min-height: 40px;" onclick="window.deleteSpecificLog('${docSnap.id}', '${memberId}')">기록삭제</button>
+                            </div>
+                        `;
+                    }
+
+                    item.style.flexDirection = 'column';
+                    item.style.alignItems = 'flex-start';
+
                     item.innerHTML = `
-                        <div class="date">${log.date}</div>
-                        <div class="metrics">
-                            <span class="dist">${log.distance}km</span>
-                            <div class="pace">${log.pace}</div>
+                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                            <div class="date">${log.date} ${log.location ? `<small style="font-weight:400; color:#64748b;">[${log.location}]</small>` : ''}</div>
+                            <div class="metrics" style="text-align: right;">
+                                <span class="dist" style="display:block;">${log.distance}km</span>
+                                <div class="pace">${log.pace}</div>
+                            </div>
                         </div>
+                        ${actionsHtml}
                     `;
                     historyContainer.appendChild(item);
-                });
+                    });
+
                 document.getElementById('monthly-dist').innerText = monthlyDist.toFixed(1) + "k";
                 document.getElementById('weekly-dist').innerText = weeklyDist.toFixed(1) + "k";
             } catch (e) {
@@ -334,6 +352,43 @@
             overlay.style.display = 'flex';
             setTimeout(() => overlay.classList.add('active'), 10);
         };
+
+        // --- 개별 기록 수정/삭제 기능 (관리자 전용) ---
+        window.deleteSpecificLog = async (logId, memberId) => {
+            if (!confirm('이 기록을 정말 삭제하시겠습니까?')) return;
+            try {
+                await deleteDoc(doc(db, "activity_logs", logId));
+                await recalculateMemberStats(memberId);
+                alert('기록이 삭제되었습니다.');
+                window.closeStatsModal();
+            } catch (e) {
+                alert('삭제 오류: ' + e.message);
+            }
+        };
+
+        window.editSpecificLog = (logId, memberId, date, distance, pace) => {
+            // 기존 누적 수정 팝업 대신 history.html의 수정 기능을 빌려오거나 
+            // 별도의 팝업을 띄울 수 있지만, 사용자 편의를 위해 
+            // 여기서는 history.html 페이지로 이동을 유도하거나 
+            // 간단하게 해당 데이터를 직접 수정하는 프롬프트를 제공할 수 있습니다.
+            // 여기서는 통일성을 위해 alert로 안내하고 history.html의 로직을 재사용하는 구조를 권장합니다.
+            alert('기록 수정은 "회원 기록" 페이지의 수정 버튼을 이용하시면 가장 정확하게 총계까지 자동 업데이트됩니다.');
+        };
+
+        async function recalculateMemberStats(memberId) {
+            const q = query(collection(db, "activity_logs"), where("memberId", "==", memberId));
+            const snapshot = await getDocs(q);
+            let totalDist = 0;
+            let totalCount = 0;
+            snapshot.forEach(d => {
+                totalDist += d.data().distance;
+                totalCount += 1;
+            });
+            await updateDoc(doc(db, "members", memberId), {
+                distance: Number(totalDist.toFixed(1)),
+                count: totalCount
+            });
+        }
 
         window.handleOverlayClick = (e) => {
             if(e.target.classList.contains('modal-overlay')) {
