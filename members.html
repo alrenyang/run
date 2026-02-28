@@ -29,7 +29,12 @@
 
     <main>
         <header>
-            <h1>회원 관리</h1>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <h1>회원 관리</h1>
+                <button class="btn btn-primary" onclick="openModal()">
+                    <span>+</span> 추가
+                </button>
+            </div>
             <div style="color: var(--text-muted); font-size: 0.875rem;">2026년 2월 28일</div>
         </header>
 
@@ -44,34 +49,140 @@
                             <th>이메일</th>
                             <th>상태</th>
                             <th>가입일</th>
+                            <th>관리</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>김철수</td>
-                            <td>chulsoo@example.com</td>
-                            <td><span style="color: #16a34a; font-weight: 600;">활성</span></td>
-                            <td>2026-02-27</td>
-                        </tr>
-                        <tr>
-                            <td>2</td>
-                            <td>이영희</td>
-                            <td>younghee@example.com</td>
-                            <td><span style="color: #16a34a; font-weight: 600;">활성</span></td>
-                            <td>2026-02-26</td>
-                        </tr>
-                        <tr>
-                            <td>3</td>
-                            <td>박지민</td>
-                            <td>jimin@example.com</td>
-                            <td><span style="color: #dc2626; font-weight: 600;">중지</span></td>
-                            <td>2026-02-20</td>
-                        </tr>
+                    <tbody id="member-list">
+                        <!-- JS에서 렌더링 -->
                     </tbody>
                 </table>
             </div>
         </div>
     </main>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title">회원 추가</h3>
+                <button onclick="closeModal()" style="border:none; background:none; font-size: 1.5rem; cursor:pointer; color: var(--text-muted);">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="member-form">
+                    <input type="hidden" id="member-id">
+                    <div class="form-group">
+                        <label for="name">이름</label>
+                        <input type="text" id="name" class="form-control" placeholder="이름을 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">이메일</label>
+                        <input type="email" id="email" class="form-control" placeholder="example@domain.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="status">상태</label>
+                        <select id="status" class="form-control">
+                            <option value="활성">활성</option>
+                            <option value="중지">중지</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal()">취소</button>
+                <button class="btn btn-primary" onclick="saveMember()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let members = JSON.parse(localStorage.getItem('dashboard_members')) || [
+            { id: 1, name: '김철수', email: 'chulsoo@example.com', status: '활성', date: '2026-02-27' },
+            { id: 2, name: '이영희', email: 'younghee@example.com', status: '활성', date: '2026-02-26' },
+            { id: 3, name: '박지민', email: 'jimin@example.com', status: '중지', date: '2026-02-20' }
+        ];
+
+        function renderTable() {
+            const tbody = document.getElementById('member-list');
+            tbody.innerHTML = '';
+            
+            members.forEach(member => {
+                const tr = document.createElement('tr');
+                const statusColor = member.status === '활성' ? '#16a34a' : '#dc2626';
+                
+                tr.innerHTML = `
+                    <td>${member.id}</td>
+                    <td>${member.name}</td>
+                    <td>${member.email}</td>
+                    <td><span style="color: ${statusColor}; font-weight: 600;">${member.status}</span></td>
+                    <td>${member.date}</td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-outline btn-sm" onclick="editMember(${member.id})">수정</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteMember(${member.id})">삭제</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            localStorage.setItem('dashboard_members', JSON.stringify(members));
+        }
+
+        function openModal() {
+            document.getElementById('modal-title').innerText = '회원 추가';
+            document.getElementById('member-form').reset();
+            document.getElementById('member-id').value = '';
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('active');
+        }
+
+        function saveMember() {
+            const id = document.getElementById('member-id').value;
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const status = document.getElementById('status').value;
+            
+            if(!name || !email) return alert('모든 필드를 입력해주세요.');
+
+            if(id) {
+                // Edit
+                const index = members.findIndex(m => m.id == id);
+                members[index] = { ...members[index], name, email, status };
+            } else {
+                // Add
+                const newId = members.length > 0 ? Math.max(...members.map(m => m.id)) + 1 : 1;
+                const date = new Date().toISOString().split('T')[0];
+                members.push({ id: newId, name, email, status, date });
+            }
+
+            renderTable();
+            closeModal();
+        }
+
+        function editMember(id) {
+            const member = members.find(m => m.id === id);
+            if(!member) return;
+
+            document.getElementById('modal-title').innerText = '회원 수정';
+            document.getElementById('member-id').value = member.id;
+            document.getElementById('name').value = member.name;
+            document.getElementById('email').value = member.email;
+            document.getElementById('status').value = member.status;
+            
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+
+        function deleteMember(id) {
+            if(confirm('정말로 이 회원을 삭제하시겠습니까?')) {
+                members = members.filter(m => m.id !== id);
+                renderTable();
+            }
+        }
+
+        // Initial Render
+        renderTable();
+    </script>
 </body>
 </html>
