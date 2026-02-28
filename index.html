@@ -6,106 +6,108 @@
     <title>솔라러닝크루 - 대시보드</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Home Specific Compact Stats */
-        .compact-stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-        }
-
-        .stat-card-wide {
-            grid-column: span 2;
-            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 1.25rem;
-            text-align: center;
-            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
-        }
-
-        .stat-card-small {
-            background: white;
-            padding: 1.25rem 1rem;
-            border-radius: 1.25rem;
-            text-align: center;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
-
+        .compact-stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1rem; }
+        .stat-card-wide { grid-column: span 2; background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: white; padding: 1.5rem; border-radius: 1.25rem; text-align: center; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3); }
+        .stat-card-small { background: white; padding: 1.25rem 1rem; border-radius: 1.25rem; text-align: center; border: 1px solid var(--border-color); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
         .stat-card-wide .label { font-size: 0.9rem; font-weight: 600; opacity: 0.9; margin-bottom: 0.5rem; display: block; }
         .stat-card-wide .value { font-size: 2.5rem; font-weight: 900; }
-        
         .stat-card-small .label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.25rem; display: block; }
         .stat-card-small .value { font-size: 1.5rem; font-weight: 800; color: var(--text-main); }
-
-        @media (max-width: 480px) {
-            .stat-card-wide .value { font-size: 2.2rem; }
-            .stat-card-small .value { font-size: 1.25rem; }
-        }
+        @media (max-width: 480px) { .stat-card-wide .value { font-size: 2.2rem; } .stat-card-small .value { font-size: 1.25rem; } }
     </style>
 </head>
 <body>
-    <aside>
-        <div class="sidebar-header">
-            <a href="index.html">솔라러닝크루</a>
-        </div>
-        <nav>
-            <a href="index.html" class="nav-item active">
-                <span class="nav-icon">🏠</span>
-                <span>홈</span>
-            </a>
-            <a href="history.html" class="nav-item">
-                <span class="nav-icon">📊</span>
-                <span>회원 기록</span>
-            </a>
-            <a href="records.html" class="nav-item">
-                <span class="nav-icon">📋</span>
-                <span>기록 등록</span>
-            </a>
-            <a href="members.html" class="nav-item">
-                <span class="nav-icon">👤</span>
-                <span>회원 관리</span>
-            </a>
-        </nav>
-    </aside>
-
-    <main>
-        <header>
-            <h1>솔라러닝크루</h1>
-            <div id="current-date-text" style="color: var(--text-muted); font-size: 0.875rem;">날짜 로딩 중...</div>
-        </header>
-
-        <!-- Crew Total Distance (Main Card) -->
-        <div class="stat-card-wide">
-            <span class="label">🏃 크루 총 러닝거리</span>
-            <div class="value"><span id="crew-total-distance">0.0</span> <span style="font-size: 1.2rem; font-weight: 600;">km</span></div>
-        </div>
-
-        <div style="margin-top: 1rem;" class="compact-stats-grid">
-            <!-- Total Members -->
-            <div class="stat-card-small">
-                <span class="label">👥 총 회원수</span>
-                <div class="value" id="total-members-count">-- 명</div>
+    <!-- 1. Auth Section (Login/Signup) -->
+    <div id="auth-section" class="active">
+        <div class="auth-container">
+            <div class="auth-header">
+                <h2>솔라러닝크루</h2>
+                <p style="color: var(--text-muted); margin-top: 0.5rem;" id="auth-desc">반갑습니다! 로그인 해주세요.</p>
             </div>
-            <!-- Today's Records -->
-            <div class="stat-card-small">
-                <span class="label">📅 오늘 기록</span>
-                <div class="value" id="today-records-count">-- 건</div>
+            
+            <form id="auth-form" onsubmit="event.preventDefault();">
+                <div class="form-group" style="text-align: left;">
+                    <label>이름</label>
+                    <input type="text" id="auth-name" class="form-control" placeholder="성함을 입력하세요">
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label>비밀번호 (숫자)</label>
+                    <input type="password" id="auth-pw" class="form-control" placeholder="숫자만 입력" inputmode="numeric" pattern="[0-9]*">
+                </div>
+                <button class="btn btn-primary btn-lg" style="width: 100%; margin-top: 1rem;" onclick="window.handleAuth()" id="auth-btn">로그인</button>
+            </form>
+
+            <div class="auth-toggle" id="auth-toggle-wrapper">
+                계정이 없으신가요? <span onclick="window.toggleAuthMode()">회원가입 하기</span>
             </div>
         </div>
+    </div>
 
-        <div class="card" style="margin-top: 1rem; border-style: dashed; background: transparent;">
-            <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
-                솔라러닝크루의 모든 활동 데이터는<br>파이어베이스 클라우드에 실시간 저장됩니다.
-            </p>
-        </div>
-    </main>
+    <!-- 2. App Section (Dashboard) -->
+    <div id="app-section">
+        <aside>
+            <div class="sidebar-header">
+                <a href="index.html">솔라러닝크루</a>
+            </div>
+            <nav>
+                <a href="index.html" class="nav-item active">
+                    <span class="nav-icon">🏠</span>
+                    <span>홈</span>
+                </a>
+                <a href="history.html" class="nav-item">
+                    <span class="nav-icon">📊</span>
+                    <span>회원 기록</span>
+                </a>
+                <a href="records.html" class="nav-item">
+                    <span class="nav-icon">📋</span>
+                    <span>기록 등록</span>
+                </a>
+                <a href="members.html" class="nav-item">
+                    <span class="nav-icon">👤</span>
+                    <span>회원 관리</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main>
+            <div class="user-info-bar">
+                <div style="font-weight: 700;"><span id="user-display-name">--</span>님 환영합니다!</div>
+                <div class="logout-btn" onclick="window.handleLogout()">로그아웃</div>
+            </div>
+
+            <header>
+                <h1>대시보드</h1>
+                <div id="current-date-text" style="color: var(--text-muted); font-size: 0.875rem;">--</div>
+            </header>
+
+            <div class="stat-card-wide">
+                <span class="label">🏃 크루 총 러닝거리</span>
+                <div class="value"><span id="crew-total-distance">0.0</span> <span style="font-size: 1.2rem; font-weight: 600;">km</span></div>
+            </div>
+
+            <div style="margin-top: 1rem;" class="compact-stats-grid">
+                <div class="stat-card-small">
+                    <span class="label">👥 총 회원수</span>
+                    <div class="value" id="total-members-count">-- 명</div>
+                </div>
+                <div class="stat-card-small">
+                    <span class="label">📅 오늘 기록</span>
+                    <div class="value" id="today-records-count">-- 건</div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 1rem; border-style: dashed; background: transparent;">
+                <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+                    기록 등록 메뉴에서 오늘 런닝을 인증해 주세요!
+                </p>
+            </div>
+        </main>
+    </div>
 
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, query, where } 
+        import { getFirestore, collection, onSnapshot, query, where, getDocs, addDoc } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // 🔥 Firebase 설정값
@@ -120,29 +122,89 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const usersCol = collection(db, "app_users");
 
-        // 현재 날짜 설정
-        const now = new Date();
-        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        document.getElementById('current-date-text').innerText = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
+        let isLoginMode = true;
 
-        // 1. 총 회원수 및 크루 총 거리 실시간 계산
-        onSnapshot(collection(db, "members"), (snapshot) => {
-            document.getElementById('total-members-count').innerText = `${snapshot.size} 명`;
-            
-            let totalKm = 0;
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                totalKm += (data.distance || 0);
+        // --- 인증 로직 ---
+        window.toggleAuthMode = () => {
+            isLoginMode = !isLoginMode;
+            document.getElementById('auth-btn').innerText = isLoginMode ? '로그인' : '회원가입';
+            document.getElementById('auth-desc').innerText = isLoginMode ? '반갑습니다! 로그인 해주세요.' : '새로운 크루 계정을 만듭니다.';
+            document.getElementById('auth-toggle-wrapper').innerHTML = isLoginMode ? 
+                '계정이 없으신가요? <span onclick="window.toggleAuthMode()">회원가입 하기</span>' :
+                '이미 계정이 있으신가요? <span onclick="window.toggleAuthMode()">로그인 하기</span>';
+        };
+
+        window.handleAuth = async () => {
+            const name = document.getElementById('auth-name').value.trim();
+            const pw = document.getElementById('auth-pw').value.trim();
+
+            if(!name || !pw) return alert('이름과 비밀번호를 입력해 주세요.');
+
+            if (isLoginMode) {
+                // 로그인
+                const q = query(usersCol, where("name", "==", name), where("password", "==", pw));
+                const snapshot = await getDocs(q);
+                if (snapshot.empty) {
+                    alert('이름 또는 비밀번호가 일치하지 않습니다.');
+                } else {
+                    const userData = { name };
+                    localStorage.setItem('crew_user', JSON.stringify(userData));
+                    checkAuth();
+                }
+            } else {
+                // 회원가입
+                const q = query(usersCol, where("name", "==", name));
+                const snapshot = await getDocs(q);
+                if (!snapshot.empty) {
+                    return alert('이미 존재하는 이름입니다.');
+                }
+                await addDoc(usersCol, { name, password: pw });
+                alert('회원가입이 완료되었습니다! 로그인 해주세요.');
+                window.toggleAuthMode();
+            }
+        };
+
+        window.handleLogout = () => {
+            localStorage.removeItem('crew_user');
+            location.reload();
+        };
+
+        const checkAuth = () => {
+            const user = localStorage.getItem('crew_user');
+            if (user) {
+                const userData = JSON.parse(user);
+                document.getElementById('user-display-name').innerText = userData.name;
+                document.getElementById('auth-section').classList.remove('active');
+                document.getElementById('app-section').classList.add('active');
+                initDashboard();
+            } else {
+                document.getElementById('auth-section').classList.add('active');
+                document.getElementById('app-section').classList.remove('active');
+            }
+        };
+
+        // --- 대시보드 로직 ---
+        const initDashboard = () => {
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            document.getElementById('current-date-text').innerText = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
+
+            onSnapshot(collection(db, "members"), (snapshot) => {
+                document.getElementById('total-members-count').innerText = `${snapshot.size} 명`;
+                let totalKm = 0;
+                snapshot.forEach((doc) => { totalKm += (doc.data().distance || 0); });
+                document.getElementById('crew-total-distance').innerText = totalKm.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
             });
-            document.getElementById('crew-total-distance').innerText = totalKm.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
-        });
 
-        // 2. 오늘의 기록 실시간 카운트
-        const activityQuery = query(collection(db, "activity_logs"), where("date", "==", todayStr));
-        onSnapshot(activityQuery, (snapshot) => {
-            document.getElementById('today-records-count').innerText = `${snapshot.size} 건`;
-        });
+            const activityQuery = query(collection(db, "activity_logs"), where("date", "==", todayStr));
+            onSnapshot(activityQuery, (snapshot) => {
+                document.getElementById('today-records-count').innerText = `${snapshot.size} 건`;
+            });
+        };
+
+        checkAuth();
     </script>
 </body>
 </html>
