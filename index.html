@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>관리자 대시보드 - 홈</title>
+    <title>솔라러닝크루 - 대시보드</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <aside>
         <div class="sidebar-header">
-            <a href="index.html">DASHBOARD</a>
+            <a href="index.html">솔라러닝크루</a>
         </div>
         <nav>
             <a href="index.html" class="nav-item active">
@@ -30,23 +30,74 @@
     <main>
         <header>
             <h1>대시보드 개요</h1>
-            <div style="color: var(--text-muted); font-size: 0.875rem;">2026년 2월 28일</div>
+            <div id="current-date-text" style="color: var(--text-muted); font-size: 0.875rem;">날짜 정보를 불러오는 중...</div>
         </header>
 
         <div class="card">
             <h3 style="margin-bottom: 1rem;">시스템 현황</h3>
-            <p style="color: var(--text-muted);">현재 시스템은 정상 작동 중입니다.</p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
-                <div style="background: #f0fdf4; padding: 1.25rem; border-radius: 0.75rem; border: 1px solid #bbf7d0;">
-                    <div style="color: #166534; font-size: 0.875rem; font-weight: 600;">총 회원수</div>
-                    <div style="font-size: 1.75rem; font-weight: 700; margin-top: 0.5rem; color: #14532d;">1,284명</div>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">크루의 활동 데이터를 실시간으로 집계합니다.</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div style="background: #f0fdf4; padding: 1.5rem; border-radius: 1rem; border: 1px solid #bbf7d0; box-shadow: 0 4px 6px -1px rgba(22, 101, 52, 0.05);">
+                    <div style="color: #166534; font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem;">총 회원수</div>
+                    <div id="total-members-count" style="font-size: 2.25rem; font-weight: 800; color: #14532d;">-- 명</div>
+                    <div style="font-size: 0.75rem; color: #166534; margin-top: 0.5rem; opacity: 0.8;">전체 등록 인원</div>
                 </div>
-                <div style="background: #eff6ff; padding: 1.25rem; border-radius: 0.75rem; border: 1px solid #bfdbfe;">
-                    <div style="color: #1e40af; font-size: 0.875rem; font-weight: 600;">오늘의 기록</div>
-                    <div style="font-size: 1.75rem; font-weight: 700; margin-top: 0.5rem; color: #1e3a8a;">56건</div>
+                <div style="background: #eff6ff; padding: 1.5rem; border-radius: 1rem; border: 1px solid #bfdbfe; box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.05);">
+                    <div style="color: #1e40af; font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem;">오늘의 기록</div>
+                    <div id="today-records-count" style="font-size: 2.25rem; font-weight: 800; color: #1e3a8a;">-- 건</div>
+                    <div id="today-date-label" style="font-size: 0.75rem; color: #1e40af; margin-top: 0.5rem; opacity: 0.8;">0000-00-00 기준</div>
                 </div>
             </div>
         </div>
+
+        <div class="card" style="margin-top: 1.5rem;">
+            <h3 style="margin-bottom: 1rem;">바로가기</h3>
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <a href="members.html" class="btn btn-outline" style="text-decoration: none;">회원 명단 보기</a>
+                <a href="records.html" class="btn btn-primary" style="text-decoration: none;">새 기록 등록하기</a>
+            </div>
+        </div>
     </main>
+
+    <!-- Firebase SDK (Modular) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, query, where } 
+        from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // 🔥 본인의 Firebase 설정값으로 교체해 주세요!
+        const firebaseConfig = {
+            apiKey: "AIzaSyD1TE3jtcdcH6UvbfPGIy_IeaVivg2YvPA",
+            authDomain: "run-app-268d5.firebaseapp.com",
+            projectId: "run-app-268d5",
+            storageBucket: "run-app-268d5.firebasestorage.app",
+            messagingSenderId: "1064940196481",
+            appId: "1:1064940196481:web:0408fd1fb557c4b2a2b380"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // 1. 현재 날짜 표시 및 쿼리용 문자열 생성
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+        
+        document.getElementById('current-date-text').innerText = `${year}년 ${month}월 ${day}일`;
+        document.getElementById('today-date-label').innerText = `${todayStr} 기준`;
+
+        // 2. 총 회원수 실시간 카운트
+        onSnapshot(collection(db, "members"), (snapshot) => {
+            document.getElementById('total-members-count').innerText = `${snapshot.size} 명`;
+        });
+
+        // 3. 오늘의 기록 실시간 카운트 (activity_logs 컬렉션의 date 필드 기준)
+        const activityQuery = query(collection(db, "activity_logs"), where("date", "==", todayStr));
+        onSnapshot(activityQuery, (snapshot) => {
+            document.getElementById('today-records-count').innerText = `${snapshot.size} 건`;
+        });
+    </script>
 </body>
 </html>
