@@ -31,7 +31,7 @@
         <header style="flex-direction: column; align-items: stretch; gap: 1rem;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
                 <h1>회원 관리</h1>
-                <div style="color: var(--text-muted); font-size: 0.85rem;" id="date-display">2026-02-28</div>
+                <div style="color: var(--text-muted); font-size: 0.85rem;" id="date-display">--</div>
             </div>
             <button class="btn btn-primary btn-lg" onclick="window.openModal()" style="margin-top: 0.5rem;">
                 <span style="font-size: 1.4rem;">+</span> 신규 회원 등록하기
@@ -39,16 +39,16 @@
         </header>
 
         <div class="card">
-            <h3 style="margin-bottom: 1.25rem;">러닝 회원 목록</h3>
+            <h3 style="margin-bottom: 1.25rem;">회원별 목표 및 정보</h3>
             <div style="overflow-x: auto; margin: 0 -0.75rem;">
                 <table class="data-table" style="min-width: 480px; width: 100%;">
                     <thead>
                         <tr>
                             <th style="padding-left: 0.75rem; width: 40px;">#</th>
                             <th style="width: 80px;">이름</th>
-                            <th style="width: 80px;">총거리(k)</th>
-                            <th style="width: 50px;">횟수</th>
-                            <th style="width: 70px;">페이스</th>
+                            <th style="width: 80px;">최소거리</th>
+                            <th style="width: 70px;">최소시간</th>
+                            <th style="width: 60px;">주간횟수</th>
                             <th style="padding-right: 0.75rem; text-align: right;">관리</th>
                         </tr>
                     </thead>
@@ -66,29 +66,29 @@
     <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
         <div class="modal">
             <div class="modal-header">
-                <h3 id="modal-title">회원 데이터 등록</h3>
+                <h3 id="modal-title">신규 회원 등록</h3>
                 <button onclick="closeModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="member-form" onsubmit="event.preventDefault();">
                     <input type="hidden" id="member-doc-id">
                     <div class="form-group">
-                        <label for="name">이름</label>
+                        <label for="name">회원 이름</label>
                         <input type="text" id="name" class="form-control" placeholder="성함을 입력하세요">
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
-                            <label for="distance">총거리 (km)</label>
-                            <input type="number" id="distance" class="form-control" placeholder="0.0" step="0.1">
+                            <label for="minDistance">최소거리 (km)</label>
+                            <input type="number" id="minDistance" class="form-control" placeholder="0.0" step="0.1">
                         </div>
                         <div class="form-group">
-                            <label for="count">횟수 (회)</label>
-                            <input type="number" id="count" class="form-control" placeholder="0">
+                            <label for="minTime">최소시간 (분)</label>
+                            <input type="number" id="minTime" class="form-control" placeholder="0">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="pace">페이스 (분'초")</label>
-                        <input type="text" id="pace" class="form-control" placeholder="예: 5'30\"">
+                        <label for="weeklyCount">주간러닝횟수 (회)</label>
+                        <input type="number" id="weeklyCount" class="form-control" placeholder="0">
                     </div>
                 </form>
             </div>
@@ -99,7 +99,7 @@
         </div>
     </div>
 
-    <!-- Popup Modal: Member Statistics -->
+    <!-- Popup Modal: Member Statistics (Keep existing functionality) -->
     <div class="modal-overlay" id="stats-modal-overlay" onclick="handleOverlayClick(event)">
         <div class="modal">
             <div class="modal-header">
@@ -111,7 +111,6 @@
                     <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);" id="stats-member-name">--</div>
                     <div style="font-size: 0.8rem; color: var(--text-muted);">활동 이력 및 통계</div>
                 </div>
-
                 <div class="stats-grid">
                     <div class="stat-box">
                         <span class="label">이번 달 거리</span>
@@ -122,11 +121,8 @@
                         <span class="value" id="weekly-dist">0.0k</span>
                     </div>
                 </div>
-
                 <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem;">최근 활동 (주차별 구분)</div>
-                <div class="history-list" id="history-items">
-                    <!-- 활동 이력 로드 -->
-                </div>
+                <div class="history-list" id="history-items"></div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline" onclick="closeStatsModal()">닫기</button>
@@ -176,12 +172,12 @@
                 tr.innerHTML = `
                     <td style="padding-left: 0.75rem; color: var(--text-muted); font-size: 0.75rem;">${index++}</td>
                     <td style="font-weight: 600; color: var(--primary-color); cursor: pointer;" onclick="window.showStats('${doc.id}', '${member.name}')">${member.name}</td>
-                    <td><span style="font-weight: 700;">${member.distance}</span></td>
-                    <td>${member.count}</td>
-                    <td><span style="background: #f3f4f6; padding: 0.15rem 0.35rem; border-radius: 0.4rem; font-family: monospace; font-size: 0.8rem;">${member.pace}</span></td>
+                    <td><span style="font-weight: 700;">${member.minDistance || 0}</span> km</td>
+                    <td>${member.minTime || 0} 분</td>
+                    <td><span style="background: #f3f4f6; padding: 0.15rem 0.35rem; border-radius: 0.4rem; font-family: monospace; font-size: 0.8rem;">${member.weeklyCount || 0} 회</span></td>
                     <td style="padding-right: 0.75rem; text-align: right;">
                         <div style="display: flex; gap: 0.3rem; justify-content: flex-end;">
-                            <button class="btn btn-outline btn-sm" style="padding: 0.3rem 0.5rem;" onclick="window.editMember('${doc.id}', '${member.name}', ${member.distance}, ${member.count}, '${member.pace}')">수정</button>
+                            <button class="btn btn-outline btn-sm" style="padding: 0.3rem 0.5rem;" onclick="window.editMember('${doc.id}', '${member.name}', ${member.minDistance || 0}, ${member.minTime || 0}, ${member.weeklyCount || 0})">수정</button>
                             <button class="btn btn-danger btn-sm" style="padding: 0.3rem 0.5rem;" onclick="window.deleteMember('${doc.id}')">삭제</button>
                         </div>
                     </td>
@@ -196,13 +192,11 @@
             const historyContainer = document.getElementById('history-items');
             historyContainer.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--text-muted);">데이터 분석 중...</div>';
             
-            // 팝업 열기
             const overlay = document.getElementById('stats-modal-overlay');
             overlay.style.display = 'flex';
             setTimeout(() => overlay.classList.add('active'), 10);
 
             try {
-                // 인덱스 에러 방지를 위해 orderBy를 제거하고 클라이언트 측에서 정렬합니다.
                 const q = query(collection(db, "activity_logs"), where("memberId", "==", memberId));
                 const querySnapshot = await getDocs(q);
                 
@@ -221,23 +215,16 @@
                     return;
                 }
 
-                // 데이터를 배열로 담아 날짜 내림차순 정렬
                 const logs = [];
                 querySnapshot.forEach((docSnap) => logs.push(docSnap.data()));
                 logs.sort((a, b) => new Date(b.date) - new Date(a.date));
 
                 logs.forEach((log) => {
                     const logDate = new Date(log.date);
-                    
-                    // 통계 계산
                     if (logDate >= oneMonthAgo) monthlyDist += log.distance;
                     if (logDate >= oneWeekAgo) weeklyDist += log.distance;
-
-                    // 주차별 색상 구분을 위한 계산 (ISO 주차 기준)
                     const weekNum = getWeekNumber(logDate);
                     const weekClass = weekNum % 2 === 0 ? 'week-even' : 'week-odd';
-
-                    // 항목 추가
                     const item = document.createElement('div');
                     item.className = `history-item ${weekClass}`;
                     item.innerHTML = `
@@ -249,17 +236,13 @@
                     `;
                     historyContainer.appendChild(item);
                 });
-
                 document.getElementById('monthly-dist').innerText = monthlyDist.toFixed(1) + "k";
                 document.getElementById('weekly-dist').innerText = weeklyDist.toFixed(1) + "k";
-
             } catch (e) {
-                console.error("Stats Error:", e);
                 historyContainer.innerHTML = '<div style="text-align:center; padding:1rem; color:red;">기록을 불러오지 못했습니다.</div>';
             }
         };
 
-        // 주차 계산 함수
         function getWeekNumber(d) {
             d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
             d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
@@ -274,10 +257,10 @@
             setTimeout(() => { overlay.style.display = 'none'; }, 300);
         };
 
-        // --- 기존 회원 관리 함수들 ---
         window.openModal = () => {
             document.getElementById('modal-title').innerText = '신규 회원 등록';
             document.getElementById('member-form').reset();
+            document.getElementById('member-id').value = '';
             document.getElementById('member-doc-id').value = '';
             const overlay = document.getElementById('modal-overlay');
             overlay.style.display = 'flex';
@@ -293,17 +276,18 @@
         window.saveMember = async () => {
             const id = document.getElementById('member-doc-id').value;
             const name = document.getElementById('name').value;
-            const distance = parseFloat(document.getElementById('distance').value) || 0;
-            const count = parseInt(document.getElementById('count').value) || 0;
-            const pace = document.getElementById('pace').value || "0'00\"";
+            const minDistance = parseFloat(document.getElementById('minDistance').value) || 0;
+            const minTime = parseInt(document.getElementById('minTime').value) || 0;
+            const weeklyCount = parseInt(document.getElementById('weeklyCount').value) || 0;
 
             if(!name) return alert('이름을 입력해 주세요.');
 
             try {
+                const data = { name, minDistance, minTime, weeklyCount };
                 if(id) {
-                    await updateDoc(doc(db, "members", id), { name, distance, count, pace });
+                    await updateDoc(doc(db, "members", id), data);
                 } else {
-                    await addDoc(membersCol, { name, distance, count, pace });
+                    await addDoc(membersCol, data);
                 }
                 window.closeModal();
             } catch (e) {
@@ -317,13 +301,13 @@
             }
         };
 
-        window.editMember = (id, name, distance, count, pace) => {
+        window.editMember = (id, name, minDistance, minTime, weeklyCount) => {
             document.getElementById('modal-title').innerText = '회원 정보 수정';
             document.getElementById('member-doc-id').value = id;
             document.getElementById('name').value = name;
-            document.getElementById('distance').value = distance;
-            document.getElementById('count').value = count;
-            document.getElementById('pace').value = pace;
+            document.getElementById('minDistance').value = minDistance;
+            document.getElementById('minTime').value = minTime;
+            document.getElementById('weeklyCount').value = weeklyCount;
             const overlay = document.getElementById('modal-overlay');
             overlay.style.display = 'flex';
             setTimeout(() => overlay.classList.add('active'), 10);
