@@ -259,8 +259,8 @@
 
         window.openModal = () => {
             document.getElementById('modal-title').innerText = '신규 회원 등록';
-            document.getElementById('member-form').reset();
-            document.getElementById('member-id').value = '';
+            const form = document.getElementById('member-form');
+            if (form) form.reset();
             document.getElementById('member-doc-id').value = '';
             const overlay = document.getElementById('modal-overlay');
             overlay.style.display = 'flex';
