@@ -5,6 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>솔라러닝크루 - 대시보드</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Home Specific Compact Stats */
+        .compact-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card-wide {
+            grid-column: span 2;
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 1.25rem;
+            text-align: center;
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+        }
+
+        .stat-card-small {
+            background: white;
+            padding: 1.25rem 1rem;
+            border-radius: 1.25rem;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-card-wide .label { font-size: 0.9rem; font-weight: 600; opacity: 0.9; margin-bottom: 0.5rem; display: block; }
+        .stat-card-wide .value { font-size: 2.5rem; font-weight: 900; }
+        
+        .stat-card-small .label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.25rem; display: block; }
+        .stat-card-small .value { font-size: 1.5rem; font-weight: 800; color: var(--text-main); }
+
+        @media (max-width: 480px) {
+            .stat-card-wide .value { font-size: 2.2rem; }
+            .stat-card-small .value { font-size: 1.25rem; }
+        }
+    </style>
 </head>
 <body>
     <aside>
@@ -33,27 +72,34 @@
 
     <main>
         <header>
-            <h1>솔라러닝크루</h1>
-            <div id="current-date-text" style="color: var(--text-muted); font-size: 0.875rem;">날짜 정보를 불러오는 중...</div>
+            <h1>대시보드</h1>
+            <div id="current-date-text" style="color: var(--text-muted); font-size: 0.875rem;">날짜 로딩 중...</div>
         </header>
 
-        <div class="card">
-            <h3 style="margin-bottom: 1rem;">시스템 현황</h3>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">크루의 활동 데이터를 실시간으로 집계합니다.</p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                <div style="background: #f0fdf4; padding: 1.5rem; border-radius: 1rem; border: 1px solid #bbf7d0; box-shadow: 0 4px 6px -1px rgba(22, 101, 52, 0.05);">
-                    <div style="color: #166534; font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem;">총 회원수</div>
-                    <div id="total-members-count" style="font-size: 2.25rem; font-weight: 800; color: #14532d;">-- 명</div>
-                    <div style="font-size: 0.75rem; color: #166534; margin-top: 0.5rem; opacity: 0.8;">전체 등록 인원</div>
-                </div>
-                <div style="background: #eff6ff; padding: 1.5rem; border-radius: 1rem; border: 1px solid #bfdbfe; box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.05);">
-                    <div style="color: #1e40af; font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem;">오늘의 기록</div>
-                    <div id="today-records-count" style="font-size: 2.25rem; font-weight: 800; color: #1e3a8a;">-- 건</div>
-                    <div id="today-date-label" style="font-size: 0.75rem; color: #1e40af; margin-top: 0.5rem; opacity: 0.8;">0000-00-00 기준</div>
-                </div>
+        <!-- Crew Total Distance (Main Card) -->
+        <div class="stat-card-wide">
+            <span class="label">🏃 크루 총 러닝거리</span>
+            <div class="value"><span id="crew-total-distance">0.0</span> <span style="font-size: 1.2rem; font-weight: 600;">km</span></div>
+        </div>
+
+        <div style="margin-top: 1rem;" class="compact-stats-grid">
+            <!-- Total Members -->
+            <div class="stat-card-small">
+                <span class="label">👥 총 회원수</span>
+                <div class="value" id="total-members-count">-- 명</div>
+            </div>
+            <!-- Today's Records -->
+            <div class="stat-card-small">
+                <span class="label">📅 오늘 기록</span>
+                <div class="value" id="today-records-count">-- 건</div>
             </div>
         </div>
 
+        <div class="card" style="margin-top: 1rem; border-style: dashed; background: transparent;">
+            <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+                솔라러닝크루의 모든 활동 데이터는<br>파이어베이스 클라우드에 실시간 저장됩니다.
+            </p>
+        </div>
     </main>
 
     <!-- Firebase SDK (Modular) -->
@@ -62,7 +108,7 @@
         import { getFirestore, collection, onSnapshot, query, where } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 🔥 본인의 Firebase 설정값으로 교체해 주세요!
+        // 🔥 Firebase 설정값
         const firebaseConfig = {
             apiKey: "AIzaSyD1TE3jtcdcH6UvbfPGIy_IeaVivg2YvPA",
             authDomain: "run-app-268d5.firebaseapp.com",
@@ -75,22 +121,24 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // 1. 현재 날짜 표시 및 쿼리용 문자열 생성
+        // 현재 날짜 설정
         const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const todayStr = `${year}-${month}-${day}`;
-        
-        document.getElementById('current-date-text').innerText = `${year}년 ${month}월 ${day}일`;
-        document.getElementById('today-date-label').innerText = `${todayStr} 기준`;
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        document.getElementById('current-date-text').innerText = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
 
-        // 2. 총 회원수 실시간 카운트
+        // 1. 총 회원수 및 크루 총 거리 실시간 계산
         onSnapshot(collection(db, "members"), (snapshot) => {
             document.getElementById('total-members-count').innerText = `${snapshot.size} 명`;
+            
+            let totalKm = 0;
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                totalKm += (data.distance || 0);
+            });
+            document.getElementById('crew-total-distance').innerText = totalKm.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
         });
 
-        // 3. 오늘의 기록 실시간 카운트 (activity_logs 컬렉션의 date 필드 기준)
+        // 2. 오늘의 기록 실시간 카운트
         const activityQuery = query(collection(db, "activity_logs"), where("date", "==", todayStr));
         onSnapshot(activityQuery, (snapshot) => {
             document.getElementById('today-records-count').innerText = `${snapshot.size} 건`;
