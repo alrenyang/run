@@ -379,7 +379,7 @@ h1 {
     }
 }
 
-/* Mobile Responsive Base */
+/* Mobile Responsive Adjustments */
 @media (max-width: 768px) {
     body {
         flex-direction: column;
@@ -387,17 +387,18 @@ h1 {
 
     aside {
         width: 100%;
-        height: auto;
+        height: 75px; /* Increased height for better thumb reach */
         position: fixed;
         bottom: 0;
         top: auto;
         flex-direction: row;
         border-top: 1px solid var(--sidebar-hover);
-        border-bottom: none;
+        background-color: var(--sidebar-bg);
+        box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
     }
 
     .sidebar-header {
-        display: none; /* Hide header on mobile bottom nav */
+        display: none;
     }
 
     nav {
@@ -405,33 +406,54 @@ h1 {
         padding: 0;
         width: 100%;
         justify-content: space-around;
+        align-items: stretch;
     }
 
     .nav-item {
         flex: 1;
         flex-direction: column;
-        padding: 0.75rem 0.5rem;
-        font-size: 0.75rem;
+        padding: 0.8rem 0;
+        font-size: 0.85rem; /* Larger font for labels */
+        font-weight: 700;
         text-align: center;
+        justify-content: center;
+        gap: 4px;
     }
 
     .nav-icon {
         margin-right: 0;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0;
+        font-size: 1.5rem; /* Much larger icons for mobile */
     }
 
     main {
         margin-left: 0;
-        margin-bottom: 70px; /* Space for bottom nav */
-        padding: 1.25rem;
+        margin-bottom: 90px; /* Space for taller bottom nav */
+        padding: 1.5rem 1rem;
     }
 
     h1 {
-        font-size: 1.25rem;
+        font-size: 1.4rem;
+    }
+
+    /* Make ALL buttons on mobile significantly larger */
+    .btn {
+        padding: 1rem 1.5rem;
+        font-size: 1.1rem;
+        min-height: 56px; /* High-touch target standard */
+        width: auto;
+    }
+
+    /* Small buttons in tables also need to be bigger on mobile */
+    .btn-sm {
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+        min-height: 44px;
     }
 
     .card {
-        padding: 1rem;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
     }
 }
 
