@@ -34,7 +34,7 @@
     <main>
         <header>
             <h1>회원 기록 통계</h1>
-            <div style="color: var(--text-muted); font-size: 0.85rem;" id="sync-status">데이터 로딩 중...</div>
+            <div style="color: var(--text-muted); font-size: 0.85rem;" id="sync-status">실시간 연동 중</div>
         </header>
 
         <div class="card">
@@ -53,9 +53,7 @@
                     </thead>
                     <tbody id="history-list">
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-                                파이어베이스에서 데이터를 불러오는 중...
-                            </td>
+                            <td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">데이터를 불러오는 중...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -63,56 +61,84 @@
         </div>
     </main>
 
-    <!-- Popup Modal: Edit Cumulative Stats -->
-    <div class="modal-overlay" id="edit-history-modal" onclick="window.handleOverlayClick(event)">
+    <!-- Popup Modal: Edit Most Recent Activity Log -->
+    <div class="modal-overlay" id="edit-log-modal" onclick="window.handleOverlayClick(event)">
         <div class="modal">
             <div class="modal-header">
-                <h3>누적 기록 수정</h3>
+                <h3>마지막 기록 수정</h3>
                 <button onclick="window.closeEditModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="history-edit-form">
+                <div id="edit-target-info" style="margin-bottom: 1.25rem; padding: 1rem; background: #f8fafc; border-radius: 0.75rem; border: 1px solid #e2e8f0;">
+                    <div style="font-size: 0.8rem; color: #64748b;">수정 대상 회원</div>
+                    <div style="font-size: 1.1rem; font-weight: 800; color: var(--primary-color);" id="edit-member-name-label">--</div>
+                </div>
+                <form id="log-edit-form">
+                    <input type="hidden" id="edit-log-id">
                     <input type="hidden" id="edit-member-id">
                     <div class="form-group">
-                        <label>회원 이름 (변경 불가)</label>
-                        <input type="text" id="edit-name" class="form-control" readonly style="background-color: #f1f5f9;">
+                        <label>운동 날짜</label>
+                        <input type="date" id="edit-log-date" class="form-control">
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
-                            <label>총거리 (km)</label>
-                            <input type="number" id="edit-distance" class="form-control" step="0.1">
+                            <label>거리 (km)</label>
+                            <input type="number" id="edit-log-distance" class="form-control" step="0.1">
                         </div>
                         <div class="form-group">
-                            <label>총 횟수 (회)</label>
-                            <input type="number" id="edit-count" class="form-control">
+                            <label>페이스</label>
+                            <input type="text" id="edit-log-pace" class="form-control">
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div class="form-group">
-                            <label>총 시간 (분)</label>
-                            <input type="number" id="edit-total-time" class="form-control" step="0.1">
-                        </div>
-                        <div class="form-group">
-                            <label>마지막 페이스</label>
-                            <input type="text" id="edit-pace" class="form-control">
-                        </div>
+                    <div style="background: #fffbeb; padding: 0.75rem; border-radius: 0.5rem; font-size: 0.75rem; color: #92400e; border: 1px solid #fde68a;">
+                        ℹ️ 마지막 기록을 수정하면 회원의 총 누계 데이터도 자동으로 다시 계산되어 업데이트됩니다.
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline" onclick="window.closeEditModal()">취소</button>
-                <button class="btn btn-primary" onclick="window.saveHistoryEdit()">수정 완료</button>
+                <button class="btn btn-primary" onclick="window.saveLogEdit()">수정 완료</button>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK (Modular) -->
+    <!-- Popup Modal: Member Statistics (Same as members.html) -->
+    <div class="modal-overlay" id="stats-modal-overlay" onclick="window.handleOverlayClick(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>회원 활동 기록</h3>
+                <button onclick="window.closeStatsModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="stats-member-info" style="text-align: center; margin-bottom: 1rem;">
+                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);" id="stats-member-name">--</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">활동 이력 및 통계</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <span class="label">이번 달 거리</span>
+                        <span class="value" id="monthly-dist">0.0k</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="label">최근 7일 거리</span>
+                        <span class="value" id="weekly-dist">0.0k</span>
+                    </div>
+                </div>
+                <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem;">최근 활동 (주차별 구분)</div>
+                <div class="history-list" id="history-items"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="window.closeStatsModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy } 
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy, where, getDocs, limit } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 🔥 Firebase 설정값
         const firebaseConfig = {
             apiKey: "AIzaSyD1TE3jtcdcH6UvbfPGIy_IeaVivg2YvPA",
             authDomain: "run-app-268d5.firebaseapp.com",
@@ -125,21 +151,15 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const membersCol = collection(db, "members");
+        const logsCol = collection(db, "activity_logs");
 
-        // 1. 데이터 실시간 수신 로직
+        // 1. 누적 데이터 실시간 로드
         onSnapshot(query(membersCol, orderBy("name")), (snapshot) => {
-            console.log("History: 데이터 수신 중...");
             const tbody = document.getElementById('history-list');
             tbody.innerHTML = '';
             
-            if(snapshot.empty) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">등록된 회원이 없습니다.</td></tr>';
-                document.getElementById('sync-status').innerText = "기록 없음";
-                return;
-            }
-
-            snapshot.forEach((doc) => {
-                const m = doc.data();
+            snapshot.forEach((docSnap) => {
+                const m = docSnap.data();
                 const tr = document.createElement('tr');
                 
                 const totalMinutes = m.totalTime || 0;
@@ -148,63 +168,163 @@
                 const timeStr = h > 0 ? `${h}시간 ${min}분` : `${min}분`;
 
                 tr.innerHTML = `
-                    <td style="padding-left: 0.75rem; font-weight: 700;">${m.name}</td>
-                    <td><span style="color: var(--primary-color); font-weight: 800;">${m.distance || 0}</span> km</td>
+                    <td style="padding-left: 0.75rem; font-weight: 700; color: var(--primary-color); cursor: pointer;" onclick="window.showStats('${docSnap.id}', '${m.name}')">${m.name}</td>
+                    <td><span style="color: var(--text-main); font-weight: 800;">${m.distance || 0}</span> km</td>
                     <td><span style="font-family: monospace; font-size: 0.85rem;">${m.pace || "0'00\""}</span></td>
                     <td style="font-size: 0.85rem;">${timeStr}</td>
                     <td>${m.count || 0} 회</td>
                     <td style="padding-right: 0.75rem; text-align: right;">
-                        <button class="btn btn-outline btn-sm" style="padding: 0.4rem 0.6rem;" onclick="window.openEditModal('${doc.id}', '${m.name}', ${m.distance || 0}, ${m.count || 0}, ${m.totalTime || 0}, '${m.pace || ""}')">수정</button>
+                        <button class="btn btn-outline btn-sm" style="padding: 0.4rem 0.6rem;" onclick="window.openLastLogEdit('${docSnap.id}', '${m.name}')">수정</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
             document.getElementById('sync-status').innerText = "실시간 연동 완료";
-        }, (error) => {
-            console.error("Firebase Error:", error);
-            document.getElementById('history-list').innerHTML = `<tr><td colspan="6" style="text-align: center; color: red;">에러: ${error.message}</td></tr>`;
         });
 
-        // 2. 전역 함수 설정 (onclick용)
-        window.openEditModal = (id, name, dist, count, time, pace) => {
-            document.getElementById('edit-member-id').value = id;
-            document.getElementById('edit-name').value = name;
-            document.getElementById('edit-distance').value = dist;
-            document.getElementById('edit-count').value = count;
-            document.getElementById('edit-total-time').value = time;
-            document.getElementById('edit-pace').value = pace;
-            
-            const overlay = document.getElementById('edit-history-modal');
-            overlay.style.display = 'flex';
-            setTimeout(() => overlay.classList.add('active'), 10);
+        // 2. 마지막 기록 수정 팝업 열기
+        window.openLastLogEdit = async (memberId, memberName) => {
+            document.getElementById('edit-member-name-label').innerText = memberName;
+            document.getElementById('edit-member-id').value = memberId;
+
+            try {
+                // 해당 회원의 가장 최근 로그 하나 가져오기
+                const q = query(logsCol, where("memberId", "==", memberId), orderBy("date", "desc"), limit(1));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    alert('수정할 활동 기록이 없습니다. 먼저 기록을 등록해 주세요.');
+                    return;
+                }
+
+                const lastLogDoc = querySnapshot.docs[0];
+                const lastLog = lastLogDoc.data();
+
+                document.getElementById('edit-log-id').value = lastLogDoc.id;
+                document.getElementById('edit-log-date').value = lastLog.date;
+                document.getElementById('edit-log-distance').value = lastLog.distance;
+                document.getElementById('edit-log-pace').value = lastLog.pace;
+
+                const overlay = document.getElementById('edit-log-modal');
+                overlay.style.display = 'flex';
+                setTimeout(() => overlay.classList.add('active'), 10);
+            } catch (e) {
+                console.error("Fetch last log error:", e);
+                alert('기록을 불러오는 중 오류가 발생했습니다.');
+            }
         };
 
+        // 3. 마지막 기록 저장 및 누계 재계산
+        window.saveLogEdit = async () => {
+            const logId = document.getElementById('edit-log-id').value;
+            const memberId = document.getElementById('edit-member-id').value;
+            const newDist = parseFloat(document.getElementById('edit-log-distance').value);
+            const newPace = document.getElementById('edit-log-pace').value;
+            const newDate = document.getElementById('edit-log-date').value;
+
+            try {
+                // 1. 개별 로그 업데이트
+                await updateDoc(doc(db, "activity_logs", logId), {
+                    distance: newDist,
+                    pace: newPace,
+                    date: newDate
+                });
+
+                // 2. 해당 회원의 모든 로그를 다시 가져와서 총 누계 재계산 (데이터 일관성 유지)
+                const q = query(logsCol, where("memberId", "==", memberId));
+                const allLogsSnapshot = await getDocs(q);
+                
+                let totalDist = 0;
+                let totalCount = 0;
+                let lastPace = newPace;
+
+                allLogsSnapshot.forEach((l) => {
+                    const data = l.data();
+                    totalDist += data.distance;
+                    totalCount += 1;
+                });
+
+                // 3. 회원 마스터 정보 업데이트
+                await updateDoc(doc(db, "members", memberId), {
+                    distance: Number(totalDist.toFixed(1)),
+                    count: totalCount,
+                    pace: lastPace // 가장 최근 수정된 페이스로 유지
+                });
+
+                alert('수정되었습니다. 누적 통계가 재계산되었습니다.');
+                window.closeEditModal();
+            } catch (e) {
+                alert("수정 중 오류: " + e.message);
+            }
+        };
+
+        // --- 회원 통계 보기 (members.html과 동일 로직) ---
+        window.showStats = async (memberId, memberName) => {
+            document.getElementById('stats-member-name').innerText = memberName;
+            const historyContainer = document.getElementById('history-items');
+            historyContainer.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--text-muted);">분석 중...</div>';
+            
+            const overlay = document.getElementById('stats-modal-overlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
+
+            try {
+                const q = query(logsCol, where("memberId", "==", memberId));
+                const querySnapshot = await getDocs(q);
+                
+                let monthlyDist = 0; let weeklyDist = 0;
+                const now = new Date();
+                const oneMonthAgo = new Date(); oneMonthAgo.setMonth(now.getMonth() - 1);
+                const oneWeekAgo = new Date(); oneWeekAgo.setDate(now.getDate() - 7);
+                
+                const logs = [];
+                querySnapshot.forEach((docSnap) => logs.push(docSnap.data()));
+                logs.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                historyContainer.innerHTML = '';
+                logs.forEach((log) => {
+                    const logDate = new Date(log.date);
+                    if (logDate >= oneMonthAgo) monthlyDist += log.distance;
+                    if (logDate >= oneWeekAgo) weeklyDist += log.distance;
+                    const weekNum = getWeekNumber(logDate);
+                    const weekClass = weekNum % 2 === 0 ? 'week-even' : 'week-odd';
+                    const item = document.createElement('div');
+                    item.className = `history-item ${weekClass}`;
+                    item.innerHTML = `
+                        <div class="date">${log.date}</div>
+                        <div class="metrics"><span class="dist">${log.distance}km</span><div class="pace">${log.pace}</div></div>
+                    `;
+                    historyContainer.appendChild(item);
+                });
+                document.getElementById('monthly-dist').innerText = monthlyDist.toFixed(1) + "k";
+                document.getElementById('weekly-dist').innerText = weeklyDist.toFixed(1) + "k";
+            } catch (e) { console.error(e); }
+        };
+
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
         window.closeEditModal = () => {
-            const overlay = document.getElementById('edit-history-modal');
+            const overlay = document.getElementById('edit-log-modal');
             overlay.classList.remove('active');
             setTimeout(() => { overlay.style.display = 'none'; }, 300);
         };
 
-        window.saveHistoryEdit = async () => {
-            const id = document.getElementById('edit-member-id').value;
-            const distance = parseFloat(document.getElementById('edit-distance').value) || 0;
-            const count = parseInt(document.getElementById('edit-count').value) || 0;
-            const totalTime = parseFloat(document.getElementById('edit-total-time').value) || 0;
-            const pace = document.getElementById('edit-pace').value;
-
-            try {
-                const memberRef = doc(db, "members", id);
-                await updateDoc(memberRef, {
-                    distance, count, totalTime, pace
-                });
-                window.closeEditModal();
-            } catch (e) {
-                alert("수정 오류: " + e.message);
-            }
+        window.closeStatsModal = () => {
+            const overlay = document.getElementById('stats-modal-overlay');
+            overlay.classList.remove('active');
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
         };
 
         window.handleOverlayClick = (e) => {
-            if(e.target.id === 'edit-history-modal') window.closeEditModal();
+            if(e.target.classList.contains('modal-overlay')) {
+                window.closeEditModal();
+                window.closeStatsModal();
+            }
         };
     </script>
 </body>
