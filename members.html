@@ -197,8 +197,8 @@
             setTimeout(() => overlay.classList.add('active'), 10);
 
             try {
-                // 기록 가져오기 (activity_logs 컬렉션에서 해당 회원 기록 쿼리)
-                const q = query(collection(db, "activity_logs"), where("memberId", "==", memberId), orderBy("date", "desc"));
+                // 인덱스 에러 방지를 위해 orderBy를 제거하고 클라이언트 측에서 정렬합니다.
+                const q = query(collection(db, "activity_logs"), where("memberId", "==", memberId));
                 const querySnapshot = await getDocs(q);
                 
                 let monthlyDist = 0;
@@ -216,8 +216,12 @@
                     return;
                 }
 
-                querySnapshot.forEach((docSnap) => {
-                    const log = docSnap.data();
+                // 데이터를 배열로 담아 날짜 내림차순 정렬
+                const logs = [];
+                querySnapshot.forEach((docSnap) => logs.push(docSnap.data()));
+                logs.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                logs.forEach((log) => {
                     const logDate = new Date(log.date);
                     
                     // 통계 계산
@@ -266,6 +270,21 @@
         };
 
         // --- 기존 회원 관리 함수들 ---
+        window.openModal = () => {
+            document.getElementById('modal-title').innerText = '신규 회원 등록';
+            document.getElementById('member-form').reset();
+            document.getElementById('member-doc-id').value = '';
+            const overlay = document.getElementById('modal-overlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
+        };
+
+        window.closeModal = () => {
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.remove('active');
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        };
+
         window.saveMember = async () => {
             const id = document.getElementById('member-doc-id').value;
             const name = document.getElementById('name').value;
@@ -303,21 +322,6 @@
             const overlay = document.getElementById('modal-overlay');
             overlay.style.display = 'flex';
             setTimeout(() => overlay.classList.add('active'), 10);
-        };
-
-        window.openModal = () => {
-            document.getElementById('modal-title').innerText = '신규 회원 등록';
-            document.getElementById('member-form').reset();
-            document.getElementById('member-doc-id').value = '';
-            const overlay = document.getElementById('modal-overlay');
-            overlay.style.display = 'flex';
-            setTimeout(() => overlay.classList.add('active'), 10);
-        };
-
-        window.closeModal = () => {
-            const overlay = document.getElementById('modal-overlay');
-            overlay.classList.remove('active');
-            setTimeout(() => { overlay.style.display = 'none'; }, 300);
         };
 
         window.handleOverlayClick = (e) => {
