@@ -188,8 +188,8 @@
             document.getElementById('edit-member-id').value = memberId;
 
             try {
-                // 해당 회원의 가장 최근 로그 하나 가져오기
-                const q = query(logsCol, where("memberId", "==", memberId), orderBy("date", "desc"), limit(1));
+                // 인덱스 에러 방지를 위해 orderBy를 제거하고 모든 로그를 가져온 후 JS에서 정렬합니다.
+                const q = query(logsCol, where("memberId", "==", memberId));
                 const querySnapshot = await getDocs(q);
 
                 if (querySnapshot.empty) {
@@ -197,10 +197,16 @@
                     return;
                 }
 
-                const lastLogDoc = querySnapshot.docs[0];
-                const lastLog = lastLogDoc.data();
+                // 날짜순으로 정렬하여 가장 마지막 기록 추출
+                const logs = [];
+                querySnapshot.forEach((doc) => {
+                    logs.push({ id: doc.id, ...doc.data() });
+                });
+                logs.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-                document.getElementById('edit-log-id').value = lastLogDoc.id;
+                const lastLog = logs[0];
+
+                document.getElementById('edit-log-id').value = lastLog.id;
                 document.getElementById('edit-log-date').value = lastLog.date;
                 document.getElementById('edit-log-distance').value = lastLog.distance;
                 document.getElementById('edit-log-pace').value = lastLog.pace;
@@ -210,7 +216,7 @@
                 setTimeout(() => overlay.classList.add('active'), 10);
             } catch (e) {
                 console.error("Fetch last log error:", e);
-                alert('기록을 불러오는 중 오류가 발생했습니다.');
+                alert('기록을 불러오는 중 오류가 발생했습니다: ' + e.message);
             }
         };
 
