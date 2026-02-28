@@ -34,7 +34,7 @@
     <main>
         <header>
             <h1>회원 기록 통계</h1>
-            <div style="color: var(--text-muted); font-size: 0.85rem;" id="sync-status">실시간 연동 중</div>
+            <div style="color: var(--text-muted); font-size: 0.85rem;" id="sync-status">데이터 로딩 중...</div>
         </header>
 
         <div class="card">
@@ -53,7 +53,9 @@
                     </thead>
                     <tbody id="history-list">
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">기록을 불러오는 중...</td>
+                            <td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                                파이어베이스에서 데이터를 불러오는 중...
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -62,11 +64,11 @@
     </main>
 
     <!-- Popup Modal: Edit Cumulative Stats -->
-    <div class="modal-overlay" id="edit-history-modal" onclick="handleOverlayClick(event)">
+    <div class="modal-overlay" id="edit-history-modal" onclick="window.handleOverlayClick(event)">
         <div class="modal">
             <div class="modal-header">
                 <h3>누적 기록 수정</h3>
-                <button onclick="closeEditModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
+                <button onclick="window.closeEditModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="history-edit-form">
@@ -98,18 +100,19 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeEditModal()">취소</button>
-                <button class="btn btn-primary" onclick="saveHistoryEdit()">수정 완료</button>
+                <button class="btn btn-outline" onclick="window.closeEditModal()">취소</button>
+                <button class="btn btn-primary" onclick="window.saveHistoryEdit()">수정 완료</button>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // 🔥 Firebase 설정값
         const firebaseConfig = {
             apiKey: "AIzaSyD1TE3jtcdcH6UvbfPGIy_IeaVivg2YvPA",
             authDomain: "run-app-268d5.firebaseapp.com",
@@ -123,13 +126,15 @@
         const db = getFirestore(app);
         const membersCol = collection(db, "members");
 
-        // 실시간 기록 목록 렌더링
+        // 1. 데이터 실시간 수신 로직
         onSnapshot(query(membersCol, orderBy("name")), (snapshot) => {
+            console.log("History: 데이터 수신 중...");
             const tbody = document.getElementById('history-list');
             tbody.innerHTML = '';
             
             if(snapshot.empty) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">기록이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">등록된 회원이 없습니다.</td></tr>';
+                document.getElementById('sync-status').innerText = "기록 없음";
                 return;
             }
 
@@ -137,7 +142,6 @@
                 const m = doc.data();
                 const tr = document.createElement('tr');
                 
-                // 분 단위를 "시간 분"으로 보기 좋게 변환 (선택 사항)
                 const totalMinutes = m.totalTime || 0;
                 const h = Math.floor(totalMinutes / 60);
                 const min = Math.round(totalMinutes % 60);
@@ -146,17 +150,22 @@
                 tr.innerHTML = `
                     <td style="padding-left: 0.75rem; font-weight: 700;">${m.name}</td>
                     <td><span style="color: var(--primary-color); font-weight: 800;">${m.distance || 0}</span> km</td>
-                    <td><span style="font-family: monospace; font-size: 0.85rem;">${m.pace || "0'00""}</span></td>
+                    <td><span style="font-family: monospace; font-size: 0.85rem;">${m.pace || "0'00\""}</span></td>
                     <td style="font-size: 0.85rem;">${timeStr}</td>
                     <td>${m.count || 0} 회</td>
                     <td style="padding-right: 0.75rem; text-align: right;">
-                        <button class="btn btn-outline btn-sm" onclick="window.openEditModal('${doc.id}', '${m.name}', ${m.distance || 0}, ${m.count || 0}, ${m.totalTime || 0}, '${m.pace || ""}')">수정</button>
+                        <button class="btn btn-outline btn-sm" style="padding: 0.4rem 0.6rem;" onclick="window.openEditModal('${doc.id}', '${m.name}', ${m.distance || 0}, ${m.count || 0}, ${m.totalTime || 0}, '${m.pace || ""}')">수정</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
+            document.getElementById('sync-status').innerText = "실시간 연동 완료";
+        }, (error) => {
+            console.error("Firebase Error:", error);
+            document.getElementById('history-list').innerHTML = `<tr><td colspan="6" style="text-align: center; color: red;">에러: ${error.message}</td></tr>`;
         });
 
+        // 2. 전역 함수 설정 (onclick용)
         window.openEditModal = (id, name, dist, count, time, pace) => {
             document.getElementById('edit-member-id').value = id;
             document.getElementById('edit-name').value = name;
@@ -184,7 +193,8 @@
             const pace = document.getElementById('edit-pace').value;
 
             try {
-                await updateDoc(doc(db, "members", id), {
+                const memberRef = doc(db, "members", id);
+                await updateDoc(memberRef, {
                     distance, count, totalTime, pace
                 });
                 window.closeEditModal();
@@ -194,7 +204,7 @@
         };
 
         window.handleOverlayClick = (e) => {
-            if(e.target.classList.contains('modal-overlay')) window.closeEditModal();
+            if(e.target.id === 'edit-history-modal') window.closeEditModal();
         };
     </script>
 </body>
