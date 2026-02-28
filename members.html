@@ -28,13 +28,14 @@
     </aside>
 
     <main>
-        <header>
-            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+        <header style="flex-direction: column; align-items: stretch; gap: 1rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
                 <h1>회원 관리</h1>
-                <button class="btn btn-primary" onclick="openModal()">
-                    <span style="font-size: 1.2rem;">+</span> 추가
-                </button>
+                <div style="color: var(--text-muted); font-size: 0.85rem;" id="date-display">2026-02-28</div>
             </div>
+            <button class="btn btn-primary btn-lg" onclick="window.openModal()" style="margin-top: 0.5rem;">
+                <span style="font-size: 1.4rem;">+</span> 신규 회원 등록하기
+            </button>
         </header>
 
         <div class="card">
@@ -152,6 +153,10 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const membersCol = collection(db, "members");
+
+        // 오늘 날짜 표시
+        const today = new Date();
+        document.getElementById('date-display').innerText = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
         // 회원 목록 실시간 렌더링
         onSnapshot(query(membersCol, orderBy("name")), (snapshot) => {
