@@ -60,7 +60,7 @@
     <div class="modal-overlay" id="record-modal-overlay">
         <div class="modal">
             <div class="modal-header">
-                <h3>활동 기록 등록</h3>
+                <h3>런닝 기록 등록</h3>
                 <button onclick="window.closeRecordModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
             </div>
             <div class="modal-body">
@@ -73,15 +73,23 @@
                         <label>운동 날짜</label>
                         <input type="date" id="record-date" class="form-control">
                     </div>
+                    <div class="form-group">
+                        <label>러닝 거리 (km)</label>
+                        <input type="number" id="new-distance" class="form-control" placeholder="0.0" step="0.1" oninput="calculatePace()">
+                    </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
-                            <label>추가 거리 (km)</label>
-                            <input type="number" id="new-distance" class="form-control" placeholder="0.0" step="0.1">
+                            <label>런닝 시간 (분)</label>
+                            <input type="number" id="run-min" class="form-control" placeholder="0" min="0" oninput="calculatePace()">
                         </div>
                         <div class="form-group">
-                            <label>현재 페이스</label>
-                            <input type="text" id="new-pace" class="form-control" placeholder="5'30\"">
+                            <label>런닝 시간 (초)</label>
+                            <input type="number" id="run-sec" class="form-control" placeholder="0" min="0" max="59" oninput="calculatePace()">
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label>계산된 페이스 (자동)</label>
+                        <input type="text" id="new-pace" class="form-control" placeholder="분'초\"" readonly style="background-color: #f1f5f9; font-weight: 700; color: var(--primary-color);">
                     </div>
                 </form>
             </div>
@@ -145,10 +153,42 @@
         });
 
         // 오늘 날짜 설정
-        document.getElementById('record-date').valueAsDate = new Date();
+        function setTodayDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('record-date').value = `${year}-${month}-${day}`;
+        }
+        setTodayDate();
+
+        // 실시간 페이스 계산
+        window.calculatePace = () => {
+            const dist = parseFloat(document.getElementById('new-distance').value);
+            const min = parseInt(document.getElementById('run-min').value) || 0;
+            const sec = parseInt(document.getElementById('run-sec').value) || 0;
+
+            if (!dist || dist <= 0 || (min === 0 && sec === 0)) {
+                document.getElementById('new-pace').value = "";
+                return;
+            }
+
+            const totalSeconds = (min * 60) + sec;
+            const secondsPerKm = totalSeconds / dist;
+            
+            const paceMin = Math.floor(secondsPerKm / 60);
+            const paceSec = Math.round(secondsPerKm % 60);
+            
+            // 페이스가 60초가 될 경우 1분으로 올림 처리
+            const finalMin = paceSec === 60 ? paceMin + 1 : paceMin;
+            const finalSec = paceSec === 60 ? 0 : paceSec;
+
+            document.getElementById('new-pace').value = `${finalMin}'${String(finalSec).padStart(2, '0')}"`;
+        };
 
         // 팝업 열기
         window.openRecordModal = (id, name) => {
+            setTodayDate();
             document.getElementById('target-member-id').value = id;
             document.getElementById('target-member-info').innerHTML = `
                 <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 0.25rem;">선택된 회원</div>
@@ -163,7 +203,10 @@
         window.closeRecordModal = () => {
             const overlay = document.getElementById('record-modal-overlay');
             overlay.classList.remove('active');
-            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+            setTimeout(() => { 
+                overlay.style.display = 'none'; 
+                document.getElementById('record-form').reset();
+            }, 300);
         };
 
         // 기록 저장 로직
@@ -174,7 +217,7 @@
             const date = document.getElementById('record-date').value;
 
             if(!newDist || !newPace || !date) {
-                alert('모든 항목을 입력해 주세요.');
+                alert('거리와 시간을 정확히 입력해 주세요. 페이스가 자동으로 계산되어야 합니다.');
                 return;
             }
 
