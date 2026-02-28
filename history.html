@@ -252,7 +252,6 @@
                     if (currentUser.role === 'admin') {
                         actionsHtml = `
                             <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; width: 100%;">
-                                <button class="btn btn-outline btn-sm" style="flex: 1; min-height: 48px; font-size: 1rem;" onclick="window.openSpecificEditModal('${log.id}', '${memberId}', '${log.date}', ${log.distance}, '${log.pace}', '${log.location || '실외'}')">수정</button>
                                 <button class="btn btn-danger btn-sm" style="flex: 1; min-height: 48px; font-size: 1rem;" onclick="window.deleteSpecificLog('${log.id}', '${memberId}')">삭제</button>
                             </div>
                         `;
