@@ -58,11 +58,11 @@ nav {
 .nav-item {
     display: flex;
     align-items: center;
-    padding: 0.75rem 1.5rem;
+    padding: 1.15rem 1.5rem; /* Increased from 0.75rem */
     color: #d1d5db;
     text-decoration: none;
     transition: all 0.2s;
-    font-size: 0.95rem;
+    font-size: 1rem; /* Increased from 0.95rem */
 }
 
 .nav-item:hover {
@@ -191,10 +191,10 @@ h1 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.625rem 1.25rem;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 600;
+    padding: 0.8rem 1.5rem; /* Increased from 0.625rem 1.25rem */
+    border-radius: 0.875rem; /* Slightly more rounded */
+    font-size: 1rem; /* Increased from 0.875rem */
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
@@ -204,7 +204,7 @@ h1 {
 }
 
 .btn:active {
-    transform: scale(0.96);
+    transform: scale(0.95);
 }
 
 .btn-primary {
@@ -241,9 +241,9 @@ h1 {
 }
 
 .btn-sm {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8125rem;
-    border-radius: 0.5rem;
+    padding: 0.55rem 1rem; /* Increased from 0.4rem 0.8rem */
+    font-size: 0.875rem; /* Increased from 0.8125rem */
+    border-radius: 0.6rem;
 }
 
 /* Modal */
