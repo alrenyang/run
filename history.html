@@ -99,33 +99,48 @@
         </div>
     </div>
 
-    <!-- Popup Modal: Member Statistics (Same as members.html) -->
+    <!-- Popup Modal: Member Statistics -->
     <div class="modal-overlay" id="stats-modal-overlay" onclick="window.handleOverlayClick(event)">
+        <!-- ... stats content ... -->
+    </div>
+
+    <!-- Popup Modal: Edit Specific Log Record -->
+    <div class="modal-overlay" id="edit-specific-log-modal" onclick="window.handleOverlayClick(event)">
         <div class="modal">
             <div class="modal-header">
-                <h3>회원 활동 기록</h3>
-                <button onclick="window.closeStatsModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
+                <h3>활동 기록 수정</h3>
+                <button onclick="window.closeSpecificEditModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
             </div>
             <div class="modal-body">
-                <div id="stats-member-info" style="text-align: center; margin-bottom: 1rem;">
-                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);" id="stats-member-name">--</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">활동 이력 및 통계</div>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-box">
-                        <span class="label">이번 달 거리</span>
-                        <span class="value" id="monthly-dist">0.0k</span>
+                <form id="specific-log-form">
+                    <input type="hidden" id="spec-log-id">
+                    <input type="hidden" id="spec-member-id">
+                    <div class="form-group">
+                        <label>운동 날짜</label>
+                        <input type="date" id="spec-date" class="form-control">
                     </div>
-                    <div class="stat-box">
-                        <span class="label">최근 7일 거리</span>
-                        <span class="value" id="weekly-dist">0.0k</span>
+                    <div class="form-group">
+                        <label>러닝 장소</label>
+                        <select id="spec-location" class="form-control">
+                            <option value="실외">실외 (Outdoor)</option>
+                            <option value="실내">실내 (Indoor)</option>
+                        </select>
                     </div>
-                </div>
-                <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem;">최근 활동 (주차별 구분)</div>
-                <div class="history-list" id="history-items"></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>거리 (km)</label>
+                            <input type="number" id="spec-distance" class="form-control" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>페이스</label>
+                            <input type="text" id="spec-pace" class="form-control">
+                        </div>
+                    </div>
+                </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="window.closeStatsModal()">닫기</button>
+                <button class="btn btn-outline" onclick="window.closeSpecificEditModal()">취소</button>
+                <button class="btn btn-primary" onclick="window.saveSpecificLogEdit()">수정 완료</button>
             </div>
         </div>
     </div>
@@ -334,17 +349,18 @@
                     if (currentUser.role === 'admin') {
                         actionsHtml = `
                             <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; justify-content: flex-end; width: 100%;">
-                                <button class="btn btn-danger btn-sm" style="flex: 1; min-height: 40px;" onclick="window.deleteSpecificLog('${log.id}', '${memberId}')">기록삭제</button>
+                                <button class="btn btn-outline btn-sm" style="flex: 1; min-height: 44px; font-size: 0.9rem;" onclick="window.openSpecificEditModal('${log.id}', '${memberId}', '${log.date}', ${log.distance}, '${log.pace}', '${log.location || '실외'}')">수정</button>
+                                <button class="btn btn-danger btn-sm" style="flex: 1; min-height: 44px; font-size: 0.9rem;" onclick="window.deleteSpecificLog('${log.id}', '${memberId}')">삭제</button>
                             </div>
                         `;
                     }
 
                     item.innerHTML = `
                         <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                            <div class="date">${log.date} ${log.location ? `<small style="font-weight:400; color:#64748b;">[${log.location}]</small>` : ''}</div>
+                            <div class="date" style="font-size: 0.95rem;">${log.date} <small style="font-weight:400; color:#64748b;">[${log.location || '실외'}]</small></div>
                             <div class="metrics" style="text-align: right;">
-                                <span class="dist" style="display:block;">${log.distance}km</span>
-                                <div class="pace">${log.pace}</div>
+                                <span class="dist" style="display:block; font-size: 1rem;">${log.distance}km</span>
+                                <div class="pace" style="font-size: 0.8rem;">${log.pace}</div>
                             </div>
                         </div>
                         ${actionsHtml}
@@ -375,7 +391,7 @@
             setTimeout(() => { overlay.style.display = 'none'; }, 300);
         };
 
-        // --- 개별 기록 삭제 기능 (관리자 전용) ---
+        // --- 개별 기록 수정/삭제 기능 (관리자 전용) ---
         window.deleteSpecificLog = async (logId, memberId) => {
             if (!confirm('이 기록을 정말 삭제하시겠습니까?')) return;
             try {
@@ -388,8 +404,50 @@
             }
         };
 
+        window.openSpecificEditModal = (logId, memberId, date, distance, pace, location) => {
+            document.getElementById('spec-log-id').value = logId;
+            document.getElementById('spec-member-id').value = memberId;
+            document.getElementById('spec-date').value = date;
+            document.getElementById('spec-distance').value = distance;
+            document.getElementById('spec-pace').value = pace;
+            document.getElementById('spec-location').value = location;
+
+            const overlay = document.getElementById('edit-specific-log-modal');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
+        };
+
+        window.closeSpecificEditModal = () => {
+            const overlay = document.getElementById('edit-specific-log-modal');
+            overlay.classList.remove('active');
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        };
+
+        window.saveSpecificLogEdit = async () => {
+            const logId = document.getElementById('spec-log-id').value;
+            const memberId = document.getElementById('spec-member-id').value;
+            const date = document.getElementById('spec-date').value;
+            const distance = parseFloat(document.getElementById('spec-distance').value);
+            const pace = document.getElementById('spec-pace').value;
+            const location = document.getElementById('spec-location').value;
+
+            if(!date || isNaN(distance) || !pace) return alert('정보를 모두 입력해 주세요.');
+
+            try {
+                await updateDoc(doc(db, "activity_logs", logId), {
+                    date, distance, pace, location
+                });
+                await recalculateMemberStats(memberId);
+                alert('기록이 수정되었습니다.');
+                window.closeSpecificEditModal();
+                window.closeStatsModal();
+            } catch (e) {
+                alert('수정 오류: ' + e.message);
+            }
+        };
+
         async function recalculateMemberStats(memberId) {
-            const q = query(collection(db, "activity_logs"), where("memberId", "==", memberId));
+            const q = query(logsCol, where("memberId", "==", memberId));
             const snapshot = await getDocs(q);
             let totalDist = 0;
             let totalCount = 0;
