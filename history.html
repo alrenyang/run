@@ -55,17 +55,17 @@
         </div>
     </main>
 
-    <!-- Popup Modal: Member Statistics -->
-    <div class="modal-overlay" id="stats-modal-overlay" onclick="window.handleOverlayClick(event)">
+    <!-- 1. 회원 상세 통계 팝업 -->
+    <div class="modal-overlay" id="stats-modal-overlay">
         <div class="modal">
             <div class="modal-header">
-                <h3>회원 활동 기록</h3>
-                <button onclick="window.closeStatsModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
+                <h3>회원 활동 상세</h3>
+                <button onclick="window.closeStatsModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted);">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="stats-member-info" style="text-align: center; margin-bottom: 1rem;">
-                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);" id="stats-member-name">--</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">활동 이력 및 통계</div>
+                    <div style="font-size: 1.3rem; font-weight: 800; color: var(--primary-color);" id="stats-member-name">--</div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">전체 활동 히스토리</div>
                 </div>
                 <div class="stats-grid">
                     <div class="stat-box">
@@ -77,24 +77,28 @@
                         <span class="value" id="weekly-dist">0.0k</span>
                     </div>
                 </div>
-                <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem;">최근 활동 (주차별 구분)</div>
-                <div class="history-list" id="history-items"></div>
+                <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 5px;">
+                    📅 최근 활동 <small style="font-weight:400; color:var(--text-muted);">(주차별 구분)</small>
+                </div>
+                <div class="history-list" id="history-items">
+                    <!-- 활동 이력 항목들이 여기에 생성됨 -->
+                </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="window.closeStatsModal()">닫기</button>
+                <button class="btn btn-outline" style="width: 100%;" onclick="window.closeStatsModal()">닫기</button>
             </div>
         </div>
     </div>
 
-    <!-- Popup Modal: Edit Specific Log Record -->
-    <div class="modal-overlay" id="edit-specific-log-modal" onclick="window.handleOverlayClick(event)">
+    <!-- 2. 개별 활동 기록 수정 팝업 (기록 등록 카드와 동일 스타일) -->
+    <div class="modal-overlay" id="edit-specific-log-modal">
         <div class="modal">
             <div class="modal-header">
-                <h3>활동 기록 수정</h3>
-                <button onclick="window.closeSpecificEditModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
+                <h3>런닝 기록 수정</h3>
+                <button onclick="window.closeSpecificEditModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted);">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="specific-log-form">
+                <form id="specific-log-form" onsubmit="event.preventDefault();">
                     <input type="hidden" id="spec-log-id">
                     <input type="hidden" id="spec-member-id">
                     <div class="form-group">
@@ -110,63 +114,29 @@
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
-                            <label>거리 (km)</label>
-                            <input type="number" id="spec-distance" class="form-control" step="0.1">
+                            <label>러닝 거리 (km)</label>
+                            <input type="number" id="spec-distance" class="form-control" placeholder="0.0" step="0.1">
                         </div>
                         <div class="form-group">
                             <label>페이스</label>
-                            <input type="text" id="spec-pace" class="form-control">
+                            <input type="text" id="spec-pace" class="form-control" placeholder="5'30\"">
                         </div>
                     </div>
+                    <p style="font-size: 0.75rem; color: #6366f1; background: #f5f3ff; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #ddd6fe;">
+                        💡 기록을 수정하면 해당 회원의 총 누적 거리와 횟수가 자동으로 다시 계산됩니다.
+                    </p>
                 </form>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="display: flex; gap: 0.75rem;">
                 <button class="btn btn-outline" onclick="window.closeSpecificEditModal()">취소</button>
-                <button class="btn btn-primary" onclick="window.saveSpecificLogEdit()">수정 완료</button>
+                <button class="btn btn-primary" onclick="window.saveSpecificLogEdit()">저장하기</button>
             </div>
         </div>
     </div>
 
-    <!-- Popup Modal: Last Log Edit (For quick management) -->
-    <div class="modal-overlay" id="edit-log-modal" onclick="window.handleOverlayClick(event)">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>마지막 기록 수정</h3>
-                <button onclick="window.closeEditModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="edit-target-info" style="margin-bottom: 1.25rem; padding: 1rem; background: #f8fafc; border-radius: 0.75rem; border: 1px solid #e2e8f0;">
-                    <div style="font-size: 0.8rem; color: #64748b;">수정 대상 회원</div>
-                    <div style="font-size: 1.1rem; font-weight: 800; color: var(--primary-color);" id="edit-member-name-label">--</div>
-                </div>
-                <form id="log-edit-form">
-                    <input type="hidden" id="edit-log-id">
-                    <input type="hidden" id="edit-member-id">
-                    <div class="form-group">
-                        <label>운동 날짜</label>
-                        <input type="date" id="edit-log-date" class="form-control">
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div class="form-group">
-                            <label>거리 (km)</label>
-                            <input type="number" id="edit-log-distance" class="form-control" step="0.1">
-                        </div>
-                        <div class="form-group">
-                            <label>페이스</label>
-                            <input type="text" id="edit-log-pace" class="form-control">
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline" onclick="window.closeEditModal()">취소</button>
-                <button class="btn btn-primary" onclick="window.saveLogEdit()">수정 완료</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- Firebase SDK -->
     <script type="module">
-        // --- [보안] 로그인 및 메뉴 제어 ---
+        // [보안] 로그인 및 메뉴 권한 체크
         const checkAuth = () => {
             const user = JSON.parse(localStorage.getItem('crew_user'));
             if (!user) { alert('로그인이 필요합니다.'); window.location.href = 'index.html'; return null; }
@@ -180,7 +150,7 @@
         if (!currentUser) throw new Error("Unauthorized");
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs, limit } 
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -197,7 +167,7 @@
         const membersCol = collection(db, "members");
         const logsCol = collection(db, "activity_logs");
 
-        // 1. 실시간 누계 데이터 로드
+        // 1. 실시간 누계 데이터 렌더링
         onSnapshot(query(membersCol, orderBy("name")), (snapshot) => {
             const tbody = document.getElementById('history-list');
             const thead = document.querySelector('thead tr');
@@ -210,12 +180,12 @@
 
             snapshot.forEach((docSnap) => {
                 const m = docSnap.data();
-                const tr = document.createElement('tr');
                 const totalMinutes = m.totalTime || 0;
                 const h = Math.floor(totalMinutes / 60);
                 const min = Math.round(totalMinutes % 60);
                 const timeStr = h > 0 ? `${h}시간 ${min}분` : `${min}분`;
 
+                const tr = document.createElement('tr');
                 let rowHtml = `
                     <td style="padding-left: 0.75rem; font-weight: 700; color: var(--primary-color); cursor: pointer;" onclick="window.showStats('${docSnap.id}', '${m.name}')">${m.name}</td>
                     <td><span style="color: var(--text-main); font-weight: 800;">${m.distance || 0}</span> km</td>
@@ -227,7 +197,7 @@
                 if (currentUser.role === 'admin') {
                     rowHtml += `
                         <td style="padding-right: 0.75rem; text-align: right;">
-                            <button class="btn btn-outline btn-sm" style="padding: 0.4rem 0.6rem;" onclick="window.openLastLogEdit('${docSnap.id}', '${m.name}')">수정</button>
+                            <span style="color:var(--text-muted); font-size:0.75rem;">(상세에서 수정)</span>
                         </td>
                     `;
                 }
@@ -237,11 +207,11 @@
             document.getElementById('sync-status').innerText = "실시간 연동 완료";
         });
 
-        // 2. 회원 상세 통계 보기
+        // 2. 회원 상세 통계 팝업 열기
         window.showStats = async (memberId, memberName) => {
             document.getElementById('stats-member-name').innerText = memberName;
             const historyContainer = document.getElementById('history-items');
-            historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">분석 중...</div>';
+            historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">활동 내역 로딩 중...</div>';
             
             const overlay = document.getElementById('stats-modal-overlay');
             overlay.style.display = 'flex';
@@ -250,6 +220,7 @@
             try {
                 const q = query(logsCol, where("memberId", "==", memberId));
                 const querySnapshot = await getDocs(q);
+                
                 let monthlyDist = 0; let weeklyDist = 0;
                 const now = new Date();
                 const oneMonthAgo = new Date(); oneMonthAgo.setMonth(now.getMonth() - 1);
@@ -260,10 +231,15 @@
                 logs.sort((a, b) => new Date(b.date) - new Date(a.date));
 
                 historyContainer.innerHTML = '';
+                if(logs.length === 0) {
+                    historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">아직 기록이 없습니다.</div>';
+                }
+
                 logs.forEach((log) => {
                     const logDate = new Date(log.date);
-                    if (logDate >= oneMonthAgo) monthlyDist += log.distance;
-                    if (logDate >= oneWeekAgo) weeklyDist += log.distance;
+                    if (logDate >= oneMonthAgo) monthlyDist += (log.distance || 0);
+                    if (logDate >= oneWeekAgo) weeklyDist += (log.distance || 0);
+                    
                     const weekNum = getWeekNumber(logDate);
                     const weekClass = weekNum % 2 === 0 ? 'week-even' : 'week-odd';
                     
@@ -275,65 +251,41 @@
                     let actionsHtml = '';
                     if (currentUser.role === 'admin') {
                         actionsHtml = `
-                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; justify-content: flex-end; width: 100%;">
-                                <button class="btn btn-outline btn-sm" style="flex: 1; min-height: 44px;" onclick="window.openSpecificEditModal('${log.id}', '${memberId}', '${log.date}', ${log.distance}, '${log.pace}', '${log.location || '실외'}')">수정</button>
-                                <button class="btn btn-danger btn-sm" style="flex: 1; min-height: 44px;" onclick="window.deleteSpecificLog('${log.id}', '${memberId}')">삭제</button>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; width: 100%;">
+                                <button class="btn btn-outline btn-sm" style="flex: 1; min-height: 48px; font-size: 1rem;" onclick="window.openSpecificEditModal('${log.id}', '${memberId}', '${log.date}', ${log.distance}, '${log.pace}', '${log.location || '실외'}')">수정</button>
+                                <button class="btn btn-danger btn-sm" style="flex: 1; min-height: 48px; font-size: 1rem;" onclick="window.deleteSpecificLog('${log.id}', '${memberId}')">삭제</button>
                             </div>
                         `;
                     }
 
                     item.innerHTML = `
                         <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                            <div class="date" style="font-size: 0.95rem;">${log.date} <small>[${log.location || '실외'}]</small></div>
+                            <div class="date" style="font-size: 1rem;">${log.date} <small style="color:#64748b;">[${log.location || '실외'}]</small></div>
                             <div class="metrics" style="text-align: right;">
-                                <span class="dist" style="display:block; font-weight: 800;">${log.distance}km</span>
-                                <div class="pace" style="font-size: 0.8rem;">${log.pace}</div>
+                                <span class="dist" style="display:block; font-size: 1.1rem; font-weight: 800;">${log.distance}km</span>
+                                <div class="pace" style="font-size: 0.85rem;">${log.pace}</div>
                             </div>
                         </div>
                         ${actionsHtml}
                     `;
                     historyContainer.appendChild(item);
                 });
+
                 document.getElementById('monthly-dist').innerText = monthlyDist.toFixed(1) + "k";
                 document.getElementById('weekly-dist').innerText = weeklyDist.toFixed(1) + "k";
             } catch (e) { console.error(e); }
         };
 
-        function getWeekNumber(d) {
-            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-        }
-
-        // --- 수정/삭제 관련 함수들 ---
-        window.openLastLogEdit = async (memberId, memberName) => {
-            document.getElementById('edit-member-name-label').innerText = memberName;
-            document.getElementById('edit-member-id').value = memberId;
-            try {
-                const q = query(logsCol, where("memberId", "==", memberId));
-                const snap = await getDocs(q);
-                if (snap.empty) { alert('기록이 없습니다.'); return; }
-                const logs = []; snap.forEach(d => logs.push({id: d.id, ...d.data()}));
-                logs.sort((a,b) => new Date(b.date) - new Date(a.date));
-                const last = logs[0];
-                document.getElementById('edit-log-id').value = last.id;
-                document.getElementById('edit-log-date').value = last.date;
-                document.getElementById('edit-log-distance').value = last.distance;
-                document.getElementById('edit-log-pace').value = last.pace;
-                const overlay = document.getElementById('edit-log-modal');
-                overlay.style.display = 'flex';
-                setTimeout(() => overlay.classList.add('active'), 10);
-            } catch (e) { alert('에러 발생'); }
-        };
-
+        // 3. 개별 기록 수정 팝업 제어
         window.openSpecificEditModal = (logId, memberId, date, distance, pace, location) => {
+            // 통계 팝업은 그대로 두고 그 위에 수정 팝업을 띄움
             document.getElementById('spec-log-id').value = logId;
             document.getElementById('spec-member-id').value = memberId;
             document.getElementById('spec-date').value = date;
             document.getElementById('spec-distance').value = distance;
             document.getElementById('spec-pace').value = pace;
             document.getElementById('spec-location').value = location;
+
             const overlay = document.getElementById('edit-specific-log-modal');
             overlay.style.display = 'flex';
             setTimeout(() => overlay.classList.add('active'), 10);
@@ -352,38 +304,40 @@
             const distance = parseFloat(document.getElementById('spec-distance').value);
             const pace = document.getElementById('spec-pace').value;
             const location = document.getElementById('spec-location').value;
+
+            if(!date || isNaN(distance) || !pace) return alert('모든 정보를 정확히 입력해 주세요.');
+
             try {
+                // 1. 개별 로그 업데이트
                 await updateDoc(doc(db, "activity_logs", logId), { date, distance, pace, location });
+                
+                // 2. 누계 데이터 재계산 및 업데이트
                 await recalculateMemberStats(memberId);
-                alert('수정 완료');
+                
+                alert('기록이 수정되었습니다.');
                 window.closeSpecificEditModal();
-                window.closeStatsModal();
-            } catch (e) { alert('수정 실패'); }
+                // 통계 팝업의 데이터도 최신화하기 위해 다시 로드
+                window.showStats(memberId, document.getElementById('stats-member-name').innerText);
+            } catch (e) { alert('수정 중 오류 발생'); }
         };
 
         window.deleteSpecificLog = async (logId, memberId) => {
-            if (!confirm('정말 삭제하시겠습니까?')) return;
+            if (!confirm('이 기록을 정말 삭제하시겠습니까?')) return;
             try {
                 await deleteDoc(doc(db, "activity_logs", logId));
                 await recalculateMemberStats(memberId);
-                alert('삭제 완료');
-                window.closeStatsModal();
-            } catch (e) { alert('삭제 실패'); }
+                alert('삭제되었습니다.');
+                window.showStats(memberId, document.getElementById('stats-member-name').innerText);
+            } catch (e) { alert('삭제 중 오류 발생'); }
         };
 
         async function recalculateMemberStats(memberId) {
             const q = query(logsCol, where("memberId", "==", memberId));
             const snap = await getDocs(q);
             let d = 0; let c = 0;
-            snap.forEach(l => { d += l.data().distance; c += 1; });
+            snap.forEach(l => { d += (l.data().distance || 0); c += 1; });
             await updateDoc(doc(db, "members", memberId), { distance: Number(d.toFixed(1)), count: c });
         }
-
-        window.closeEditModal = () => {
-            const overlay = document.getElementById('edit-log-modal');
-            overlay.classList.remove('active');
-            setTimeout(() => { overlay.style.display = 'none'; }, 300);
-        };
 
         window.closeStatsModal = () => {
             const overlay = document.getElementById('stats-modal-overlay');
@@ -391,12 +345,17 @@
             setTimeout(() => { overlay.style.display = 'none'; }, 300);
         };
 
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        // 배경 클릭 시 닫기 (이중 팝업 대응)
         window.handleOverlayClick = (e) => {
-            if(e.target.classList.contains('modal-overlay')) {
-                window.closeEditModal();
-                window.closeStatsModal();
-                window.closeSpecificEditModal();
-            }
+            if(e.target.id === 'edit-specific-log-modal') window.closeSpecificEditModal();
+            else if(e.target.id === 'stats-modal-overlay') window.closeStatsModal();
         };
     </script>
 </body>
