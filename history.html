@@ -135,6 +135,24 @@
 
     <!-- Firebase SDK -->
     <script type="module">
+        // --- [보안] 로그인 체크 및 메뉴 제어 ---
+        const checkAuth = () => {
+            const user = JSON.parse(localStorage.getItem('crew_user'));
+            if (!user) {
+                alert('로그인이 필요합니다.');
+                window.location.href = 'index.html';
+                return null;
+            }
+            // 일반 사용자는 회원관리 메뉴 숨김
+            if (user.role !== 'admin') {
+                const navMembers = document.querySelector('a[href="members.html"]');
+                if (navMembers) navMembers.style.display = 'none';
+            }
+            return user;
+        };
+        const currentUser = checkAuth();
+        if (!currentUser) throw new Error("Unauthorized");
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy, where, getDocs, limit } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -156,8 +174,15 @@
         // 1. 누적 데이터 실시간 로드
         onSnapshot(query(membersCol, orderBy("name")), (snapshot) => {
             const tbody = document.getElementById('history-list');
+            const thead = document.querySelector('thead tr');
             tbody.innerHTML = '';
             
+            // 관리자가 아니면 '관리' 헤더 숨김
+            if (currentUser.role !== 'admin') {
+                const manageHeader = thead.querySelector('th:last-child');
+                if (manageHeader) manageHeader.style.display = 'none';
+            }
+
             snapshot.forEach((docSnap) => {
                 const m = docSnap.data();
                 const tr = document.createElement('tr');
@@ -167,16 +192,24 @@
                 const min = Math.round(totalMinutes % 60);
                 const timeStr = h > 0 ? `${h}시간 ${min}분` : `${min}분`;
 
-                tr.innerHTML = `
+                let rowHtml = `
                     <td style="padding-left: 0.75rem; font-weight: 700; color: var(--primary-color); cursor: pointer;" onclick="window.showStats('${docSnap.id}', '${m.name}')">${m.name}</td>
                     <td><span style="color: var(--text-main); font-weight: 800;">${m.distance || 0}</span> km</td>
                     <td><span style="font-family: monospace; font-size: 0.85rem;">${m.pace || "0'00\""}</span></td>
                     <td style="font-size: 0.85rem;">${timeStr}</td>
                     <td>${m.count || 0} 회</td>
-                    <td style="padding-right: 0.75rem; text-align: right;">
-                        <button class="btn btn-outline btn-sm" style="padding: 0.4rem 0.6rem;" onclick="window.openLastLogEdit('${docSnap.id}', '${m.name}')">수정</button>
-                    </td>
                 `;
+
+                // 관리자일 때만 수정 버튼 추가
+                if (currentUser.role === 'admin') {
+                    rowHtml += `
+                        <td style="padding-right: 0.75rem; text-align: right;">
+                            <button class="btn btn-outline btn-sm" style="padding: 0.4rem 0.6rem;" onclick="window.openLastLogEdit('${docSnap.id}', '${m.name}')">수정</button>
+                        </td>
+                    `;
+                }
+
+                tr.innerHTML = rowHtml;
                 tbody.appendChild(tr);
             });
             document.getElementById('sync-status').innerText = "실시간 연동 완료";

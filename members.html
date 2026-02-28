@@ -136,6 +136,24 @@
 
     <!-- Firebase SDK (Modular) -->
     <script type="module">
+        // --- [보안] 로그인 및 관리자 체크 스크립트 ---
+        const checkAdminAuth = () => {
+            const user = JSON.parse(localStorage.getItem('crew_user'));
+            if (!user) {
+                alert('로그인이 필요한 페이지입니다.');
+                window.location.href = 'index.html';
+                return null;
+            }
+            if (user.role !== 'admin') {
+                alert('관리자만 접근할 수 있는 페이지입니다.');
+                window.location.href = 'index.html';
+                return null;
+            }
+            return user;
+        };
+        const currentUser = checkAdminAuth();
+        if (!currentUser) throw new Error("Unauthorized"); // 스크립트 중단
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
