@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 대시보드 - 회원 관리</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <aside>
+        <div class="sidebar-header">
+            <a href="index.html">DASHBOARD</a>
+        </div>
+        <nav>
+            <a href="index.html" class="nav-item">
+                <span class="nav-icon">🏠</span>
+                <span>홈</span>
+            </a>
+            <a href="members.html" class="nav-item active">
+                <span class="nav-icon">👤</span>
+                <span>회원 관리</span>
+            </a>
+            <a href="records.html" class="nav-item">
+                <span class="nav-icon">📋</span>
+                <span>기록 확인</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main>
+        <header>
+            <h1>회원 관리</h1>
+            <div style="color: var(--text-muted); font-size: 0.875rem;">2026년 2월 28일</div>
+        </header>
+
+        <div class="card">
+            <h3 style="margin-bottom: 1rem;">회원 목록</h3>
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>이름</th>
+                            <th>이메일</th>
+                            <th>상태</th>
+                            <th>가입일</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>김철수</td>
+                            <td>chulsoo@example.com</td>
+                            <td><span style="color: #16a34a; font-weight: 600;">활성</span></td>
+                            <td>2026-02-27</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>이영희</td>
+                            <td>younghee@example.com</td>
+                            <td><span style="color: #16a34a; font-weight: 600;">활성</span></td>
+                            <td>2026-02-26</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>박지민</td>
+                            <td>jimin@example.com</td>
+                            <td><span style="color: #dc2626; font-weight: 600;">중지</span></td>
+                            <td>2026-02-20</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 대시보드 - 기록 확인</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <aside>
+        <div class="sidebar-header">
+            <a href="index.html">DASHBOARD</a>
+        </div>
+        <nav>
+            <a href="index.html" class="nav-item">
+                <span class="nav-icon">🏠</span>
+                <span>홈</span>
+            </a>
+            <a href="members.html" class="nav-item">
+                <span class="nav-icon">👤</span>
+                <span>회원 관리</span>
+            </a>
+            <a href="records.html" class="nav-item active">
+                <span class="nav-icon">📋</span>
+                <span>기록 확인</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main>
+        <header>
+            <h1>기록 확인</h1>
+            <div style="color: var(--text-muted); font-size: 0.875rem;">2026년 2월 28일</div>
+        </header>
+
+        <div class="card">
+            <h3 style="margin-bottom: 1rem;">최근 활동 로그</h3>
+            <div class="log-container">
+[2026-02-28 10:15:33] - 사용자 '김철수' 정보 수정됨
+[2026-02-28 09:42:10] - 시스템 보안 패치 업데이트 완료
+[2026-02-28 09:12:45] - 관리자 'admin' 로그인 성공
+[2026-02-28 08:30:12] - 데이터베이스 정기 백업 완료
+[2026-02-27 23:55:01] - 일일 자동 정산 시스템 실행
+[2026-02-27 22:10:15] - 신규 회원 '이영희' 가입 승인
+            </div>
+        </div>
+    </main>
+</body>
+</html>
