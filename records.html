@@ -30,23 +30,25 @@
     <main>
         <header>
             <h1>기록 등록</h1>
-            <div style="color: var(--text-muted); font-size: 0.875rem;">기록을 추가할 회원을 선택해 주세요.</div>
+            <div style="color: var(--text-muted); font-size: 0.875rem;">회원 관리 페이지의 모든 회원이 여기에 표시됩니다.</div>
         </header>
 
         <div class="card">
-            <h3 style="margin-bottom: 1.25rem;">회원 선택</h3>
+            <h3 style="margin-bottom: 1.25rem;">기록 추가 대상자</h3>
             <div style="overflow-x: auto; margin: 0 -1.25rem;">
                 <table class="data-table" style="min-width: 400px;">
                     <thead>
                         <tr>
-                            <th style="padding-left: 1.25rem;">번호</th>
-                            <th>이름</th>
-                            <th style="padding-right: 1.25rem; text-align: right;">기록</th>
+                            <th style="padding-left: 1.25rem; width: 80px;">순번</th>
+                            <th>회원 성함</th>
+                            <th style="padding-right: 1.25rem; text-align: right;">작업</th>
                         </tr>
                     </thead>
                     <tbody id="member-record-list">
                         <tr>
-                            <td colspan="3" style="text-align: center; padding: 2rem; color: var(--text-muted);">회원 목록을 불러오는 중...</td>
+                            <td colspan="3" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                                파이어베이스에서 데이터를 불러오는 중...
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -55,37 +57,37 @@
     </main>
 
     <!-- Registration Modal -->
-    <div class="modal-overlay" id="record-modal-overlay" onclick="handleOverlayClick(event)">
+    <div class="modal-overlay" id="record-modal-overlay">
         <div class="modal">
             <div class="modal-header">
-                <h3 id="record-modal-title">활동 기록 등록</h3>
-                <button onclick="closeRecordModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
+                <h3>활동 기록 등록</h3>
+                <button onclick="window.closeRecordModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
             </div>
             <div class="modal-body">
-                <div id="target-member-info" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-light); border-radius: 0.75rem; border: 1px solid var(--border-color);">
-                    <!-- 회원 정보 표시 영역 -->
+                <div id="target-member-info" style="margin-bottom: 1.5rem; padding: 1.25rem; background: #f8fafc; border-radius: 1rem; border: 1px solid #e2e8f0; text-align: center;">
+                    <!-- 회원 이름 표시 -->
                 </div>
-                <form id="record-form" onsubmit="event.preventDefault();">
+                <form id="record-form">
                     <input type="hidden" id="target-member-id">
                     <div class="form-group">
-                        <label for="record-date">날짜</label>
+                        <label>운동 날짜</label>
                         <input type="date" id="record-date" class="form-control">
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
-                            <label for="new-distance">거리 (km)</label>
+                            <label>추가 거리 (km)</label>
                             <input type="number" id="new-distance" class="form-control" placeholder="0.0" step="0.1">
                         </div>
                         <div class="form-group">
-                            <label for="new-pace">페이스</label>
+                            <label>현재 페이스</label>
                             <input type="text" id="new-pace" class="form-control" placeholder="5'30\"">
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeRecordModal()">취소</button>
-                <button class="btn btn-primary" onclick="submitRecord()">기록 저장</button>
+                <button class="btn btn-outline" onclick="window.closeRecordModal()">닫기</button>
+                <button class="btn btn-primary" onclick="window.submitRecord()">기록 저장하기</button>
             </div>
         </div>
     </div>
@@ -93,10 +95,10 @@
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy, getDoc, addDoc, serverTimestamp } 
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, getDoc, addDoc, serverTimestamp } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 🔥 본인의 Firebase 설정값으로 교체해 주세요!
+        // 🔥 회원 관리(members.html)와 반드시 동일한 설정값을 넣어주세요!
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -110,13 +112,15 @@
         const db = getFirestore(app);
         const membersCol = collection(db, "members");
 
-        // 회원 목록 실시간 로드
-        onSnapshot(query(membersCol, orderBy("name")), (snapshot) => {
+        // 회원 목록을 실시간으로 가져와서 표에 표시
+        onSnapshot(membersCol, (snapshot) => {
+            console.log("파이어베이스 데이터 수신중...");
             const tbody = document.getElementById('member-record-list');
             tbody.innerHTML = '';
             
             if(snapshot.empty) {
-                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 2rem; color: var(--text-muted);">회원이 없습니다.</td></tr>';
+                console.warn("데이터가 비어있습니다. '회원 관리' 페이지에서 회원을 먼저 등록하세요.");
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 3rem; color: var(--text-muted);">회원 관리 페이지에서 회원을 먼저 등록해 주세요.</td></tr>';
                 return;
             }
 
@@ -127,35 +131,42 @@
                 
                 tr.innerHTML = `
                     <td style="padding-left: 1.25rem; color: var(--text-muted); font-size: 0.8rem;">${index++}</td>
-                    <td style="font-weight: 600;">${member.name}</td>
+                    <td style="font-weight: 700; font-size: 1rem;">${member.name}</td>
                     <td style="padding-right: 1.25rem; text-align: right;">
-                        <button class="btn btn-primary btn-sm" onclick="window.openRecordModal('${doc.id}', '${member.name}')">등록</button>
+                        <button class="btn btn-primary btn-sm" onclick="window.openRecordModal('${doc.id}', '${member.name}')">기록 등록</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
+            console.log(`${snapshot.size}명의 회원을 불러왔습니다.`);
+        }, (error) => {
+            console.error("데이터 로드 에러:", error);
+            document.getElementById('member-record-list').innerHTML = `<tr><td colspan="3" style="text-align: center; color: red;">에러 발생: ${error.message}</td></tr>`;
         });
 
-        // 오늘 날짜 기본값 설정
+        // 오늘 날짜 설정
         document.getElementById('record-date').valueAsDate = new Date();
 
+        // 팝업 열기
         window.openRecordModal = (id, name) => {
             document.getElementById('target-member-id').value = id;
             document.getElementById('target-member-info').innerHTML = `
-                <div style="font-size: 0.8rem; color: var(--text-muted);">대상 회원</div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: var(--primary-color);">${name}</div>
+                <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 0.25rem;">선택된 회원</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary-color);">${name}</div>
             `;
             const overlay = document.getElementById('record-modal-overlay');
             overlay.style.display = 'flex';
             setTimeout(() => overlay.classList.add('active'), 10);
         };
 
+        // 팝업 닫기
         window.closeRecordModal = () => {
             const overlay = document.getElementById('record-modal-overlay');
             overlay.classList.remove('active');
             setTimeout(() => { overlay.style.display = 'none'; }, 300);
         };
 
+        // 기록 저장 로직
         window.submitRecord = async () => {
             const memberId = document.getElementById('target-member-id').value;
             const newDist = parseFloat(document.getElementById('new-distance').value);
@@ -163,47 +174,47 @@
             const date = document.getElementById('record-date').value;
 
             if(!newDist || !newPace || !date) {
-                alert('모든 정보를 입력해 주세요.');
+                alert('모든 항목을 입력해 주세요.');
                 return;
             }
 
             try {
-                // 1. 해당 회원의 현재 데이터 가져오기
                 const memberRef = doc(db, "members", memberId);
                 const memberDoc = await getDoc(memberRef);
                 
                 if (memberDoc.exists()) {
-                    const currentData = memberDoc.data();
+                    const current = memberDoc.data();
                     
-                    // 2. 누적 데이터 업데이트 (거리 +1, 횟수 +1, 페이스는 최신으로 업데이트)
+                    // 기존 값에 더하기 (누적 업데이트)
                     await updateDoc(memberRef, {
-                        distance: Number((currentData.distance + newDist).toFixed(1)),
-                        count: currentData.count + 1,
+                        distance: Number(((current.distance || 0) + newDist).toFixed(1)),
+                        count: (current.count || 0) + 1,
                         pace: newPace
                     });
 
-                    // 3. (선택사항) 별도의 활동 로그 컬렉션에 저장
+                    // 히스토리 로그 기록 (activity_logs 컬렉션)
                     await addDoc(collection(db, "activity_logs"), {
                         memberId: memberId,
-                        memberName: currentData.name,
+                        memberName: current.name,
                         distance: newDist,
                         pace: newPace,
                         date: date,
                         timestamp: serverTimestamp()
                     });
 
-                    alert(`${currentData.name}님의 기록이 등록되었습니다.`);
+                    alert(`${current.name}님의 기록이 저장되었습니다.`);
                     window.closeRecordModal();
                     document.getElementById('record-form').reset();
                     document.getElementById('record-date').valueAsDate = new Date();
                 }
             } catch (e) {
-                console.error("Error: ", e);
-                alert("기록 저장 중 오류가 발생했습니다.");
+                console.error("기록 저장 중 오류:", e);
+                alert("저장 실패: " + e.message);
             }
         };
 
-        window.handleOverlayClick = (e) => {
+        // 배경 클릭 시 팝업 닫기
+        document.getElementById('record-modal-overlay').onclick = (e) => {
             if(e.target.id === 'record-modal-overlay') window.closeRecordModal();
         };
     </script>
