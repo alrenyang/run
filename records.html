@@ -35,19 +35,19 @@
 
         <div class="card">
             <h3 style="margin-bottom: 1.25rem;">기록 추가 대상자</h3>
-            <div style="overflow-x: auto; margin: 0 -1.25rem;">
-                <table class="data-table" style="min-width: 400px;">
+            <div style="overflow-x: auto; margin: 0 -0.75rem;">
+                <table class="data-table" style="min-width: 320px; width: 100%;">
                     <thead>
                         <tr>
-                            <th style="padding-left: 1.25rem; width: 80px;">순번</th>
+                            <th style="padding-left: 0.75rem; width: 50px;">순번</th>
                             <th>회원 성함</th>
-                            <th style="padding-right: 1.25rem; text-align: right;">작업</th>
+                            <th style="padding-right: 0.75rem; text-align: right;">작업</th>
                         </tr>
                     </thead>
                     <tbody id="member-record-list">
                         <tr>
-                            <td colspan="3" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-                                파이어베이스에서 데이터를 불러오는 중...
+                            <td colspan="3" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                데이터를 불러오는 중...
                             </td>
                         </tr>
                     </tbody>
@@ -130,10 +130,10 @@
                 const tr = document.createElement('tr');
                 
                 tr.innerHTML = `
-                    <td style="padding-left: 1.25rem; color: var(--text-muted); font-size: 0.8rem;">${index++}</td>
-                    <td style="font-weight: 700; font-size: 1rem;">${member.name}</td>
-                    <td style="padding-right: 1.25rem; text-align: right;">
-                        <button class="btn btn-primary btn-sm" onclick="window.openRecordModal('${doc.id}', '${member.name}')">기록 등록</button>
+                    <td style="padding-left: 0.75rem; color: var(--text-muted); font-size: 0.75rem;">${index++}</td>
+                    <td style="font-weight: 700; font-size: 0.95rem;">${member.name}</td>
+                    <td style="padding-right: 0.75rem; text-align: right;">
+                        <button class="btn btn-primary btn-sm" style="padding: 0.35rem 0.7rem;" onclick="window.openRecordModal('${doc.id}', '${member.name}')">기록 등록</button>
                     </td>
                 `;
                 tbody.appendChild(tr);

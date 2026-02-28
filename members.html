@@ -39,16 +39,16 @@
 
         <div class="card">
             <h3 style="margin-bottom: 1.25rem;">러닝 회원 목록</h3>
-            <div style="overflow-x: auto; margin: 0 -1.25rem;">
-                <table class="data-table" style="min-width: 600px;">
+            <div style="overflow-x: auto; margin: 0 -0.75rem;">
+                <table class="data-table" style="min-width: 480px; width: 100%;">
                     <thead>
                         <tr>
-                            <th style="padding-left: 1.25rem;">순번</th>
-                            <th>이름</th>
-                            <th>총거리(k)</th>
-                            <th>횟수</th>
-                            <th>페이스</th>
-                            <th style="padding-right: 1.25rem; text-align: right;">관리</th>
+                            <th style="padding-left: 0.75rem; width: 40px;">#</th>
+                            <th style="width: 80px;">이름</th>
+                            <th style="width: 80px;">총거리(k)</th>
+                            <th style="width: 50px;">횟수</th>
+                            <th style="width: 70px;">페이스</th>
+                            <th style="padding-right: 0.75rem; text-align: right;">관리</th>
                         </tr>
                     </thead>
                     <tbody id="member-list">
@@ -135,15 +135,15 @@
                 const tr = document.createElement('tr');
                 
                 tr.innerHTML = `
-                    <td style="padding-left: 1.25rem; color: var(--text-muted); font-size: 0.8rem;">${index++}</td>
+                    <td style="padding-left: 0.75rem; color: var(--text-muted); font-size: 0.75rem;">${index++}</td>
                     <td style="font-weight: 600;">${member.name}</td>
-                    <td><span style="font-weight: 700; color: var(--primary-color);">${member.distance}</span> km</td>
-                    <td>${member.count} 회</td>
-                    <td><span style="background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-family: monospace;">${member.pace}</span></td>
-                    <td style="padding-right: 1.25rem; text-align: right;">
-                        <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
-                            <button class="btn btn-outline btn-sm" onclick="window.editMember('${doc.id}', '${member.name}', ${member.distance}, ${member.count}, '${member.pace}')">수정</button>
-                            <button class="btn btn-danger btn-sm" onclick="window.deleteMember('${doc.id}')">삭제</button>
+                    <td><span style="font-weight: 700; color: var(--primary-color);">${member.distance}</span></td>
+                    <td>${member.count}</td>
+                    <td><span style="background: #f3f4f6; padding: 0.15rem 0.35rem; border-radius: 0.4rem; font-family: monospace; font-size: 0.8rem;">${member.pace}</span></td>
+                    <td style="padding-right: 0.75rem; text-align: right;">
+                        <div style="display: flex; gap: 0.3rem; justify-content: flex-end;">
+                            <button class="btn btn-outline btn-sm" style="padding: 0.3rem 0.5rem;" onclick="window.editMember('${doc.id}', '${member.name}', ${member.distance}, ${member.count}, '${member.pace}')">수정</button>
+                            <button class="btn btn-danger btn-sm" style="padding: 0.3rem 0.5rem;" onclick="window.deleteMember('${doc.id}')">삭제</button>
                         </div>
                     </td>
                 `;
