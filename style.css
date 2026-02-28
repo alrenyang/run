@@ -609,13 +609,41 @@ border: 1px solid var(--border-color);
 }
 
 .logout-btn {
-font-size: 0.85rem;
-color: #ef4444;
-cursor: pointer;
-background: #fef2f2;
-padding: 0.4rem 0.8rem;
-border-radius: 0.5rem;
-border: 1px solid #fee2e2;
-font-weight: 700;
+    font-size: 0.85rem;
+    color: #ef4444;
+    cursor: pointer;
+    background: #fef2f2;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.5rem;
+    border: 1px solid #fee2e2;
+    font-weight: 700;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+}
+
+.btn-secondary:hover {
+    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+    opacity: 0.9;
+}
+
+.user-info-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.info-edit-btn {
+    font-size: 0.85rem;
+    color: var(--primary-color);
+    cursor: pointer;
+    background: #eef2ff;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e0e7ff;
+    font-weight: 700;
 }
 

@@ -24,7 +24,7 @@
                 <span class="nav-icon">📋</span>
                 <span>기록 등록</span>
             </a>
-            <a href="members.html" class="nav-item">
+            <a href="members.html" class="nav-item" id="nav-members" style="display: none;">
                 <span class="nav-icon">👤</span>
                 <span>회원 관리</span>
             </a>
@@ -114,9 +114,10 @@
                 window.location.href = 'index.html';
                 return null;
             }
-            if (user.role !== 'admin') {
-                const navMembers = document.querySelector('a[href="members.html"]');
-                if (navMembers) navMembers.style.display = 'none';
+            // 관리자일 때만 회원관리 메뉴 표시
+            if (user.role === 'admin') {
+                const navMembers = document.getElementById('nav-members');
+                if (navMembers) navMembers.style.display = 'flex';
             }
             return user;
         };

@@ -14,18 +14,7 @@
         .stat-card-small .label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.25rem; display: block; }
         .stat-card-small .value { font-size: 1.5rem; font-weight: 800; color: var(--text-main); }
         @media (max-width: 480px) { .stat-card-wide .value { font-size: 2.2rem; } .stat-card-small .value { font-size: 1.25rem; } }
-        
-        /* Admin Badge */
-        .admin-badge {
-            background: #fef3c7;
-            color: #92400e;
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-left: 5px;
-            font-weight: 800;
-            vertical-align: middle;
-        }
+        .admin-badge { background: #fef3c7; color: #92400e; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-weight: 800; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -39,12 +28,13 @@
             <form id="auth-form" onsubmit="event.preventDefault();">
                 <div class="form-group" style="text-align: left;">
                     <label>이름</label>
-                    <input type="text" id="auth-name" class="form-control" placeholder="성함을 입력하세요">
+                    <input type="text" id="auth-name" class="form-control" placeholder="성함을 입력하세요(반드시 이름)" oninput="this.value = this.value.replace(/[^a-zA-Zㄱ-ㅎㅏ-ㅣ가-힣]/g, '')">
                 </div>
                 <div class="form-group" style="text-align: left;">
                     <label>비밀번호 (숫자)</label>
                     <input type="password" id="auth-pw" class="form-control" placeholder="숫자만 입력" inputmode="numeric">
                 </div>
+                <!-- 버튼 색상 구분 -->
                 <button class="btn btn-primary btn-lg" style="width: 100%; margin-top: 1rem;" onclick="window.handleAuth()" id="auth-btn">로그인</button>
             </form>
             <div class="auth-toggle" id="auth-toggle-wrapper">
@@ -63,7 +53,6 @@
                 <a href="index.html" class="nav-item active"><span class="nav-icon">🏠</span><span>홈</span></a>
                 <a href="history.html" class="nav-item"><span class="nav-icon">📊</span><span>회원 기록</span></a>
                 <a href="records.html" class="nav-item"><span class="nav-icon">📋</span><span>기록 등록</span></a>
-                <!-- 회원 관리는 관리자에게만 노출 -->
                 <a href="members.html" class="nav-item" id="nav-members" style="display: none;"><span class="nav-icon">👤</span><span>회원 관리</span></a>
             </nav>
         </aside>
@@ -74,7 +63,10 @@
                     <span id="user-display-name">--</span>님 
                     <span id="user-role-badge"></span>
                 </div>
-                <div class="logout-btn" onclick="window.handleLogout()">로그아웃</div>
+                <div class="user-info-actions">
+                    <div class="info-edit-btn" onclick="window.openPasswordModal()">정보수정</div>
+                    <div class="logout-btn" onclick="window.handleLogout()">로그아웃</div>
+                </div>
             </div>
 
             <header>
@@ -100,9 +92,35 @@
         </main>
     </div>
 
+    <!-- Password Change Modal -->
+    <div class="modal-overlay" id="password-modal" onclick="window.handleOverlayClick(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>비밀번호 변경</h3>
+                <button onclick="window.closePasswordModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="password-form" onsubmit="event.preventDefault();">
+                    <div class="form-group">
+                        <label>현재 비밀번호</label>
+                        <input type="password" id="current-pw" class="form-control" placeholder="기존 숫자 비밀번호" inputmode="numeric">
+                    </div>
+                    <div class="form-group">
+                        <label>새 비밀번호</label>
+                        <input type="password" id="new-pw" class="form-control" placeholder="새로운 숫자 비밀번호" inputmode="numeric">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="window.closePasswordModal()">취소</button>
+                <button class="btn btn-primary" onclick="window.changePassword()">변경 완료</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, query, where, getDocs, addDoc } 
+        import { getFirestore, collection, onSnapshot, query, where, getDocs, addDoc, doc, updateDoc } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -122,11 +140,18 @@
 
         window.toggleAuthMode = () => {
             isLoginMode = !isLoginMode;
-            document.getElementById('auth-btn').innerText = isLoginMode ? '로그인' : '회원가입';
-            document.getElementById('auth-desc').innerText = isLoginMode ? '반갑습니다! 로그인 해주세요.' : '새로운 크루 계정을 만듭니다.';
-            document.getElementById('auth-toggle-wrapper').innerHTML = isLoginMode ? 
-                '계정이 없으신가요? <span onclick="window.toggleAuthMode()">회원가입 하기</span>' :
-                '이미 계정이 있으신가요? <span onclick="window.toggleAuthMode()">로그인 하기</span>';
+            const btn = document.getElementById('auth-btn');
+            if (isLoginMode) {
+                btn.innerText = '로그인';
+                btn.className = 'btn btn-primary btn-lg'; // 파랑
+                document.getElementById('auth-desc').innerText = '반갑습니다! 로그인 해주세요.';
+                document.getElementById('auth-toggle-wrapper').innerHTML = '계정이 없으신가요? <span onclick="window.toggleAuthMode()">회원가입 하기</span>';
+            } else {
+                btn.innerText = '회원가입';
+                btn.className = 'btn btn-secondary btn-lg'; // 초록
+                document.getElementById('auth-desc').innerText = '새로운 크루 계정을 만듭니다.';
+                document.getElementById('auth-toggle-wrapper').innerHTML = '이미 계정이 있으신가요? <span onclick="window.toggleAuthMode()">로그인 하기</span>';
+            }
         };
 
         window.handleAuth = async () => {
@@ -140,16 +165,14 @@
                 if (snapshot.empty) {
                     alert('이름 또는 비밀번호가 틀립니다.');
                 } else {
-                    const userDoc = snapshot.docs[0].data();
-                    localStorage.setItem('crew_user', JSON.stringify({ name: userDoc.name, role: userDoc.role || 'user' }));
+                    const userDoc = snapshot.docs[0];
+                    localStorage.setItem('crew_user', JSON.stringify({ id: userDoc.id, name: userDoc.data().name, role: userDoc.data().role || 'user' }));
                     checkAuth();
                 }
             } else {
                 const q = query(usersCol, where("name", "==", name));
                 const snapshot = await getDocs(q);
                 if (!snapshot.empty) return alert('이미 있는 이름입니다.');
-                
-                // 첫 가입자이거나 특정 이름을 관리자로 자동 지정 (테스트용: 이름이 '관리자'면 admin)
                 const role = (name === '관리자') ? 'admin' : 'user';
                 await addDoc(usersCol, { name, password: pw, role: role });
                 alert(`${role === 'admin' ? '관리자' : '일반'} 계정으로 가입되었습니다!`);
@@ -162,17 +185,54 @@
             location.reload();
         };
 
+        // --- 비밀번호 변경 로직 ---
+        window.openPasswordModal = () => {
+            document.getElementById('password-form').reset();
+            const overlay = document.getElementById('password-modal');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
+        };
+
+        window.closePasswordModal = () => {
+            const overlay = document.getElementById('password-modal');
+            overlay.classList.remove('active');
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        };
+
+        window.changePassword = async () => {
+            const user = JSON.parse(localStorage.getItem('crew_user'));
+            const currentPw = document.getElementById('current-pw').value.trim();
+            const newPw = document.getElementById('new-pw').value.trim();
+
+            if (!currentPw || !newPw) return alert('비밀번호를 모두 입력해 주세요.');
+
+            try {
+                const userRef = doc(db, "app_users", user.id);
+                const userSnap = await getDocs(query(usersCol, where("name", "==", user.name), where("password", "==", currentPw)));
+                
+                if (userSnap.empty) {
+                    alert('현재 비밀번호가 일치하지 않습니다.');
+                    return;
+                }
+
+                await updateDoc(userRef, { password: newPw });
+                alert('비밀번호가 성공적으로 변경되었습니다. 다시 로그인해 주세요.');
+                window.handleLogout();
+            } catch (e) {
+                alert('변경 중 오류가 발생했습니다: ' + e.message);
+            }
+        };
+
+        window.handleOverlayClick = (e) => {
+            if(e.target.id === 'password-modal') window.closePasswordModal();
+        };
+
         const checkAuth = () => {
             const user = JSON.parse(localStorage.getItem('crew_user'));
             if (user) {
                 document.getElementById('user-display-name').innerText = user.name;
                 document.getElementById('user-role-badge').innerHTML = user.role === 'admin' ? '<span class="admin-badge">관리자</span>' : '';
-                
-                // 관리자면 회원관리 메뉴 노출
-                if(user.role === 'admin') {
-                    document.getElementById('nav-members').style.display = 'flex';
-                }
-
+                if(user.role === 'admin') document.getElementById('nav-members').style.display = 'flex';
                 document.getElementById('auth-section').classList.remove('active');
                 document.getElementById('app-section').classList.add('active');
                 initDashboard();
@@ -186,14 +246,12 @@
             const now = new Date();
             const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             document.getElementById('current-date-text').innerText = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
-
             onSnapshot(collection(db, "members"), (snapshot) => {
                 document.getElementById('total-members-count').innerText = `${snapshot.size} 명`;
                 let totalKm = 0;
                 snapshot.forEach((doc) => { totalKm += (doc.data().distance || 0); });
                 document.getElementById('crew-total-distance').innerText = totalKm.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
             });
-
             onSnapshot(query(collection(db, "activity_logs"), where("date", "==", todayStr)), (snapshot) => {
                 document.getElementById('today-records-count').innerText = `${snapshot.size} 건`;
             });
