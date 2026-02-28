@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>관리자 대시보드 - 회원 관리 (Firebase)</title>
+    <title>솔라러닝크루 - 회원 관리</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -30,7 +30,7 @@
     <main>
         <header>
             <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                <h1>회원 관리 <span style="font-size: 0.8rem; color: #10b981;">● 실시간 연동 중</span></h1>
+                <h1>회원 관리</h1>
                 <button class="btn btn-primary" onclick="openModal()">
                     <span style="font-size: 1.2rem;">+</span> 추가
                 </button>
@@ -61,7 +61,7 @@
         </div>
     </main>
 
-    <!-- Popup Modal -->
+    <!-- Popup Modal: Member Add/Edit -->
     <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
         <div class="modal">
             <div class="modal-header">
@@ -98,13 +98,48 @@
         </div>
     </div>
 
+    <!-- Popup Modal: Member Statistics -->
+    <div class="modal-overlay" id="stats-modal-overlay" onclick="handleOverlayClick(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>회원 활동 기록</h3>
+                <button onclick="closeStatsModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="stats-member-info" style="text-align: center; margin-bottom: 1rem;">
+                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);" id="stats-member-name">--</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">활동 이력 및 통계</div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <span class="label">이번 달 거리</span>
+                        <span class="value" id="monthly-dist">0.0k</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="label">최근 7일 거리</span>
+                        <span class="value" id="weekly-dist">0.0k</span>
+                    </div>
+                </div>
+
+                <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem;">최근 활동 (주차별 구분)</div>
+                <div class="history-list" id="history-items">
+                    <!-- 활동 이력 로드 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeStatsModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } 
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 🔥 본인의 Firebase 설정값으로 반드시 교체해 주세요!
+        // 🔥 본인의 Firebase 설정값으로 교체해 주세요!
         const firebaseConfig = {
             apiKey: "AIzaSyD1TE3jtcdcH6UvbfPGIy_IeaVivg2YvPA",
             authDomain: "run-app-268d5.firebaseapp.com",
@@ -114,12 +149,11 @@
             appId: "1:1064940196481:web:0408fd1fb557c4b2a2b380"
         };
 
-        // Firebase 초기화
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const membersCol = collection(db, "members");
 
-        // 데이터 실시간 수신 및 렌더링
+        // 회원 목록 실시간 렌더링
         onSnapshot(query(membersCol, orderBy("name")), (snapshot) => {
             const tbody = document.getElementById('member-list');
             tbody.innerHTML = '';
@@ -136,8 +170,8 @@
                 
                 tr.innerHTML = `
                     <td style="padding-left: 0.75rem; color: var(--text-muted); font-size: 0.75rem;">${index++}</td>
-                    <td style="font-weight: 600;">${member.name}</td>
-                    <td><span style="font-weight: 700; color: var(--primary-color);">${member.distance}</span></td>
+                    <td style="font-weight: 600; color: var(--primary-color); cursor: pointer;" onclick="window.showStats('${doc.id}', '${member.name}')">${member.name}</td>
+                    <td><span style="font-weight: 700;">${member.distance}</span></td>
                     <td>${member.count}</td>
                     <td><span style="background: #f3f4f6; padding: 0.15rem 0.35rem; border-radius: 0.4rem; font-family: monospace; font-size: 0.8rem;">${member.pace}</span></td>
                     <td style="padding-right: 0.75rem; text-align: right;">
@@ -151,18 +185,95 @@
             });
         });
 
-        // 전역 함수로 등록 (onclick 호출용)
+        // 회원별 통계 보기
+        window.showStats = async (memberId, memberName) => {
+            document.getElementById('stats-member-name').innerText = memberName;
+            const historyContainer = document.getElementById('history-items');
+            historyContainer.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--text-muted);">데이터 분석 중...</div>';
+            
+            // 팝업 열기
+            const overlay = document.getElementById('stats-modal-overlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
+
+            try {
+                // 기록 가져오기 (activity_logs 컬렉션에서 해당 회원 기록 쿼리)
+                const q = query(collection(db, "activity_logs"), where("memberId", "==", memberId), orderBy("date", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                let monthlyDist = 0;
+                let weeklyDist = 0;
+                const now = new Date();
+                const oneMonthAgo = new Date(); oneMonthAgo.setMonth(now.getMonth() - 1);
+                const oneWeekAgo = new Date(); oneWeekAgo.setDate(now.getDate() - 7);
+                
+                historyContainer.innerHTML = '';
+                
+                if (querySnapshot.empty) {
+                    historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">등록된 활동 기록이 없습니다.</div>';
+                    document.getElementById('monthly-dist').innerText = "0.0k";
+                    document.getElementById('weekly-dist').innerText = "0.0k";
+                    return;
+                }
+
+                querySnapshot.forEach((docSnap) => {
+                    const log = docSnap.data();
+                    const logDate = new Date(log.date);
+                    
+                    // 통계 계산
+                    if (logDate >= oneMonthAgo) monthlyDist += log.distance;
+                    if (logDate >= oneWeekAgo) weeklyDist += log.distance;
+
+                    // 주차별 색상 구분을 위한 계산 (ISO 주차 기준)
+                    const weekNum = getWeekNumber(logDate);
+                    const weekClass = weekNum % 2 === 0 ? 'week-even' : 'week-odd';
+
+                    // 항목 추가
+                    const item = document.createElement('div');
+                    item.className = `history-item ${weekClass}`;
+                    item.innerHTML = `
+                        <div class="date">${log.date}</div>
+                        <div class="metrics">
+                            <span class="dist">${log.distance}km</span>
+                            <div class="pace">${log.pace}</div>
+                        </div>
+                    `;
+                    historyContainer.appendChild(item);
+                });
+
+                document.getElementById('monthly-dist').innerText = monthlyDist.toFixed(1) + "k";
+                document.getElementById('weekly-dist').innerText = weeklyDist.toFixed(1) + "k";
+
+            } catch (e) {
+                console.error("Stats Error:", e);
+                historyContainer.innerHTML = '<div style="text-align:center; padding:1rem; color:red;">기록을 불러오지 못했습니다.</div>';
+            }
+        };
+
+        // 주차 계산 함수
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            return weekNo;
+        }
+
+        window.closeStatsModal = () => {
+            const overlay = document.getElementById('stats-modal-overlay');
+            overlay.classList.remove('active');
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        };
+
+        // --- 기존 회원 관리 함수들 ---
         window.saveMember = async () => {
             const id = document.getElementById('member-doc-id').value;
             const name = document.getElementById('name').value;
-            const distance = parseFloat(document.getElementById('distance').value);
-            const count = parseInt(document.getElementById('count').value);
-            const pace = document.getElementById('pace').value;
+            const distance = parseFloat(document.getElementById('distance').value) || 0;
+            const count = parseInt(document.getElementById('count').value) || 0;
+            const pace = document.getElementById('pace').value || "0'00\"";
 
-            if(!name || isNaN(distance) || isNaN(count) || !pace) {
-                alert('모든 정보를 정확히 입력해 주세요.');
-                return;
-            }
+            if(!name) return alert('이름을 입력해 주세요.');
 
             try {
                 if(id) {
@@ -172,26 +283,23 @@
                 }
                 window.closeModal();
             } catch (e) {
-                console.error("Error: ", e);
-                alert("저장 중 오류가 발생했습니다.");
+                alert("저장 오류: " + e.message);
             }
         };
 
         window.deleteMember = async (id) => {
-            if(confirm('이 회원의 데이터를 삭제하시겠습니까?')) {
+            if(confirm('정말로 삭제하시겠습니까?')) {
                 await deleteDoc(doc(db, "members", id));
             }
         };
 
         window.editMember = (id, name, distance, count, pace) => {
-            document.getElementById('modal-title').innerText = '회원 기록 수정';
-            document.getElementById('save-btn').innerText = '수정 완료';
+            document.getElementById('modal-title').innerText = '회원 정보 수정';
             document.getElementById('member-doc-id').value = id;
             document.getElementById('name').value = name;
             document.getElementById('distance').value = distance;
             document.getElementById('count').value = count;
             document.getElementById('pace').value = pace;
-            
             const overlay = document.getElementById('modal-overlay');
             overlay.style.display = 'flex';
             setTimeout(() => overlay.classList.add('active'), 10);
@@ -199,7 +307,6 @@
 
         window.openModal = () => {
             document.getElementById('modal-title').innerText = '신규 회원 등록';
-            document.getElementById('save-btn').innerText = '등록하기';
             document.getElementById('member-form').reset();
             document.getElementById('member-doc-id').value = '';
             const overlay = document.getElementById('modal-overlay');
@@ -214,7 +321,10 @@
         };
 
         window.handleOverlayClick = (e) => {
-            if(e.target.classList.contains('modal-overlay')) window.closeModal();
+            if(e.target.classList.contains('modal-overlay')) {
+                window.closeModal();
+                window.closeStatsModal();
+            }
         };
     </script>
 </body>
