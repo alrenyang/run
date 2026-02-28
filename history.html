@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>솔라러닝크루 - 회원 기록</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <aside>
+        <div class="sidebar-header">
+            <a href="index.html">솔라러닝크루</a>
+        </div>
+        <nav>
+            <a href="index.html" class="nav-item">
+                <span class="nav-icon">🏠</span>
+                <span>홈</span>
+            </a>
+            <a href="members.html" class="nav-item">
+                <span class="nav-icon">👤</span>
+                <span>회원 관리</span>
+            </a>
+            <a href="records.html" class="nav-item">
+                <span class="nav-icon">📋</span>
+                <span>기록 등록</span>
+            </a>
+            <a href="history.html" class="nav-item active">
+                <span class="nav-icon">📊</span>
+                <span>회원 기록</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main>
+        <header>
+            <h1>회원 기록 통계</h1>
+            <div style="color: var(--text-muted); font-size: 0.85rem;" id="sync-status">실시간 연동 중</div>
+        </header>
+
+        <div class="card">
+            <h3 style="margin-bottom: 1.25rem;">누적 활동 데이터</h3>
+            <div style="overflow-x: auto; margin: 0 -0.75rem;">
+                <table class="data-table" style="min-width: 550px; width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 0.75rem; width: 80px;">이름</th>
+                            <th style="width: 90px;">총거리</th>
+                            <th style="width: 80px;">페이스</th>
+                            <th style="width: 90px;">총시간</th>
+                            <th style="width: 60px;">횟수</th>
+                            <th style="padding-right: 0.75rem; text-align: right;">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-list">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">기록을 불러오는 중...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Popup Modal: Edit Cumulative Stats -->
+    <div class="modal-overlay" id="edit-history-modal" onclick="handleOverlayClick(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>누적 기록 수정</h3>
+                <button onclick="closeEditModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="history-edit-form">
+                    <input type="hidden" id="edit-member-id">
+                    <div class="form-group">
+                        <label>회원 이름 (변경 불가)</label>
+                        <input type="text" id="edit-name" class="form-control" readonly style="background-color: #f1f5f9;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>총거리 (km)</label>
+                            <input type="number" id="edit-distance" class="form-control" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>총 횟수 (회)</label>
+                            <input type="number" id="edit-count" class="form-control">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>총 시간 (분)</label>
+                            <input type="number" id="edit-total-time" class="form-control" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>마지막 페이스</label>
+                            <input type="text" id="edit-pace" class="form-control">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeEditModal()">취소</button>
+                <button class="btn btn-primary" onclick="saveHistoryEdit()">수정 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy } 
+        from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD1TE3jtcdcH6UvbfPGIy_IeaVivg2YvPA",
+            authDomain: "run-app-268d5.firebaseapp.com",
+            projectId: "run-app-268d5",
+            storageBucket: "run-app-268d5.firebasestorage.app",
+            messagingSenderId: "1064940196481",
+            appId: "1:1064940196481:web:0408fd1fb557c4b2a2b380"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const membersCol = collection(db, "members");
+
+        // 실시간 기록 목록 렌더링
+        onSnapshot(query(membersCol, orderBy("name")), (snapshot) => {
+            const tbody = document.getElementById('history-list');
+            tbody.innerHTML = '';
+            
+            if(snapshot.empty) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">기록이 없습니다.</td></tr>';
+                return;
+            }
+
+            snapshot.forEach((doc) => {
+                const m = doc.data();
+                const tr = document.createElement('tr');
+                
+                // 분 단위를 "시간 분"으로 보기 좋게 변환 (선택 사항)
+                const totalMinutes = m.totalTime || 0;
+                const h = Math.floor(totalMinutes / 60);
+                const min = Math.round(totalMinutes % 60);
+                const timeStr = h > 0 ? `${h}시간 ${min}분` : `${min}분`;
+
+                tr.innerHTML = `
+                    <td style="padding-left: 0.75rem; font-weight: 700;">${m.name}</td>
+                    <td><span style="color: var(--primary-color); font-weight: 800;">${m.distance || 0}</span> km</td>
+                    <td><span style="font-family: monospace; font-size: 0.85rem;">${m.pace || "0'00""}</span></td>
+                    <td style="font-size: 0.85rem;">${timeStr}</td>
+                    <td>${m.count || 0} 회</td>
+                    <td style="padding-right: 0.75rem; text-align: right;">
+                        <button class="btn btn-outline btn-sm" onclick="window.openEditModal('${doc.id}', '${m.name}', ${m.distance || 0}, ${m.count || 0}, ${m.totalTime || 0}, '${m.pace || ""}')">수정</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        });
+
+        window.openEditModal = (id, name, dist, count, time, pace) => {
+            document.getElementById('edit-member-id').value = id;
+            document.getElementById('edit-name').value = name;
+            document.getElementById('edit-distance').value = dist;
+            document.getElementById('edit-count').value = count;
+            document.getElementById('edit-total-time').value = time;
+            document.getElementById('edit-pace').value = pace;
+            
+            const overlay = document.getElementById('edit-history-modal');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
+        };
+
+        window.closeEditModal = () => {
+            const overlay = document.getElementById('edit-history-modal');
+            overlay.classList.remove('active');
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        };
+
+        window.saveHistoryEdit = async () => {
+            const id = document.getElementById('edit-member-id').value;
+            const distance = parseFloat(document.getElementById('edit-distance').value) || 0;
+            const count = parseInt(document.getElementById('edit-count').value) || 0;
+            const totalTime = parseFloat(document.getElementById('edit-total-time').value) || 0;
+            const pace = document.getElementById('edit-pace').value;
+
+            try {
+                await updateDoc(doc(db, "members", id), {
+                    distance, count, totalTime, pace
+                });
+                window.closeEditModal();
+            } catch (e) {
+                alert("수정 오류: " + e.message);
+            }
+        };
+
+        window.handleOverlayClick = (e) => {
+            if(e.target.classList.contains('modal-overlay')) window.closeEditModal();
+        };
+    </script>
+</body>
+</html>

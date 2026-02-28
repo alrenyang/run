@@ -24,6 +24,10 @@
                 <span class="nav-icon">📋</span>
                 <span>기록 등록</span>
             </a>
+            <a href="history.html" class="nav-item">
+                <span class="nav-icon">📊</span>
+                <span>회원 기록</span>
+            </a>
         </nav>
     </aside>
 
@@ -213,6 +217,8 @@
         window.submitRecord = async () => {
             const memberId = document.getElementById('target-member-id').value;
             const newDist = parseFloat(document.getElementById('new-distance').value);
+            const newMin = parseInt(document.getElementById('run-min').value) || 0;
+            const newSec = parseInt(document.getElementById('run-sec').value) || 0;
             const newPace = document.getElementById('new-pace').value;
             const date = document.getElementById('record-date').value;
 
@@ -220,6 +226,8 @@
                 alert('거리와 시간을 정확히 입력해 주세요. 페이스가 자동으로 계산되어야 합니다.');
                 return;
             }
+
+            const additionalMinutes = newMin + (newSec / 60);
 
             try {
                 const memberRef = doc(db, "members", memberId);
@@ -232,6 +240,7 @@
                     await updateDoc(memberRef, {
                         distance: Number(((current.distance || 0) + newDist).toFixed(1)),
                         count: (current.count || 0) + 1,
+                        totalTime: Number(((current.totalTime || 0) + additionalMinutes).toFixed(1)),
                         pace: newPace
                     });
 
