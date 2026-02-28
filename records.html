@@ -74,6 +74,13 @@
                         <input type="date" id="record-date" class="form-control">
                     </div>
                     <div class="form-group">
+                        <label>러닝 장소</label>
+                        <select id="run-location" class="form-control">
+                            <option value="실외">실외 (Outdoor)</option>
+                            <option value="실내">실내 (Indoor)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>러닝 거리 (km)</label>
                         <input type="number" id="new-distance" class="form-control" placeholder="0.0" step="0.1" oninput="calculatePace()">
                     </div>
@@ -235,6 +242,7 @@
             const newSec = parseInt(document.getElementById('run-sec').value) || 0;
             const newPace = document.getElementById('new-pace').value;
             const date = document.getElementById('record-date').value;
+            const location = document.getElementById('run-location').value;
 
             if(!newDist || !newPace || !date) {
                 alert('거리와 시간을 정확히 입력해 주세요. 페이스가 자동으로 계산되어야 합니다.');
@@ -265,6 +273,7 @@
                         distance: newDist,
                         pace: newPace,
                         date: date,
+                        location: location, // 실외/실내 정보 추가
                         timestamp: serverTimestamp()
                     });
 
