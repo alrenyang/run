@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>관리자 대시보드 - 회원 관리</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -29,67 +29,66 @@
 
     <main>
         <header>
-            <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                 <h1>회원 관리</h1>
                 <button class="btn btn-primary" onclick="openModal()">
-                    <span>+</span> 추가
+                    <span style="font-size: 1.2rem;">+</span> 추가
                 </button>
             </div>
-            <div style="color: var(--text-muted); font-size: 0.875rem;">2026년 2월 28일</div>
         </header>
 
         <div class="card">
-            <h3 style="margin-bottom: 1rem;">회원 목록</h3>
-            <div style="overflow-x: auto;">
-                <table class="data-table">
+            <h3 style="margin-bottom: 1.25rem;">회원 목록</h3>
+            <div style="overflow-x: auto; margin: 0 -1.25rem;">
+                <table class="data-table" style="min-width: 600px;">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th style="padding-left: 1.25rem;">ID</th>
                             <th>이름</th>
                             <th>이메일</th>
                             <th>상태</th>
                             <th>가입일</th>
-                            <th>관리</th>
+                            <th style="padding-right: 1.25rem; text-align: right;">관리</th>
                         </tr>
                     </thead>
                     <tbody id="member-list">
-                        <!-- JS에서 렌더링 -->
+                        <!-- JS 렌더링 -->
                     </tbody>
                 </table>
             </div>
         </div>
     </main>
 
-    <!-- Modal -->
-    <div class="modal-overlay" id="modal-overlay">
-        <div class="modal">
+    <!-- Popup Modal -->
+    <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+        <div class="modal" id="modal-content">
             <div class="modal-header">
                 <h3 id="modal-title">회원 추가</h3>
-                <button onclick="closeModal()" style="border:none; background:none; font-size: 1.5rem; cursor:pointer; color: var(--text-muted);">&times;</button>
+                <button onclick="closeModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="member-form">
+                <form id="member-form" onsubmit="event.preventDefault();">
                     <input type="hidden" id="member-id">
                     <div class="form-group">
                         <label for="name">이름</label>
-                        <input type="text" id="name" class="form-control" placeholder="이름을 입력하세요" required>
+                        <input type="text" id="name" class="form-control" placeholder="성함을 입력하세요" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label for="email">이메일</label>
-                        <input type="email" id="email" class="form-control" placeholder="example@domain.com" required>
+                        <input type="email" id="email" class="form-control" placeholder="example@mail.com" autocomplete="off">
                     </div>
                     <div class="form-group">
-                        <label for="status">상태</label>
-                        <select id="status" class="form-control">
-                            <option value="활성">활성</option>
-                            <option value="중지">중지</option>
+                        <label for="status">계정 상태</label>
+                        <select id="status" class="form-control" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 1rem center; background-size: 0.65rem auto;">
+                            <option value="활성">활성 (Active)</option>
+                            <option value="중지">중지 (Suspended)</option>
                         </select>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline" onclick="closeModal()">취소</button>
-                <button class="btn btn-primary" onclick="saveMember()">저장</button>
+                <button class="btn btn-primary" id="save-btn" onclick="saveMember()">저장하기</button>
             </div>
         </div>
     </div>
@@ -107,16 +106,21 @@
             
             members.forEach(member => {
                 const tr = document.createElement('tr');
+                const statusBg = member.status === '활성' ? '#f0fdf4' : '#fef2f2';
                 const statusColor = member.status === '활성' ? '#16a34a' : '#dc2626';
                 
                 tr.innerHTML = `
-                    <td>${member.id}</td>
-                    <td>${member.name}</td>
-                    <td>${member.email}</td>
-                    <td><span style="color: ${statusColor}; font-weight: 600;">${member.status}</span></td>
-                    <td>${member.date}</td>
+                    <td style="padding-left: 1.25rem; color: var(--text-muted); font-size: 0.8rem;">#${member.id}</td>
+                    <td style="font-weight: 600;">${member.name}</td>
+                    <td style="color: var(--text-muted);">${member.email}</td>
                     <td>
-                        <div style="display: flex; gap: 0.5rem;">
+                        <span style="background: ${statusBg}; color: ${statusColor}; padding: 0.25rem 0.6rem; border-radius: 2rem; font-size: 0.75rem; font-weight: 700;">
+                            ${member.status}
+                        </span>
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">${member.date}</td>
+                    <td style="padding-right: 1.25rem; text-align: right;">
+                        <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
                             <button class="btn btn-outline btn-sm" onclick="editMember(${member.id})">수정</button>
                             <button class="btn btn-danger btn-sm" onclick="deleteMember(${member.id})">삭제</button>
                         </div>
@@ -128,14 +132,26 @@
         }
 
         function openModal() {
-            document.getElementById('modal-title').innerText = '회원 추가';
+            document.getElementById('modal-title').innerText = '신규 회원 등록';
+            document.getElementById('save-btn').innerText = '등록하기';
             document.getElementById('member-form').reset();
             document.getElementById('member-id').value = '';
-            document.getElementById('modal-overlay').classList.add('active');
+            
+            const overlay = document.getElementById('modal-overlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
         }
 
         function closeModal() {
-            document.getElementById('modal-overlay').classList.remove('active');
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 300);
+        }
+
+        function handleOverlayClick(e) {
+            if(e.target.id === 'modal-overlay') closeModal();
         }
 
         function saveMember() {
@@ -144,14 +160,15 @@
             const email = document.getElementById('email').value;
             const status = document.getElementById('status').value;
             
-            if(!name || !email) return alert('모든 필드를 입력해주세요.');
+            if(!name || !email) {
+                alert('모든 정보를 정확히 입력해 주세요.');
+                return;
+            }
 
             if(id) {
-                // Edit
                 const index = members.findIndex(m => m.id == id);
                 members[index] = { ...members[index], name, email, status };
             } else {
-                // Add
                 const newId = members.length > 0 ? Math.max(...members.map(m => m.id)) + 1 : 1;
                 const date = new Date().toISOString().split('T')[0];
                 members.push({ id: newId, name, email, status, date });
@@ -165,23 +182,25 @@
             const member = members.find(m => m.id === id);
             if(!member) return;
 
-            document.getElementById('modal-title').innerText = '회원 수정';
+            document.getElementById('modal-title').innerText = '회원 정보 수정';
+            document.getElementById('save-btn').innerText = '수정 완료';
             document.getElementById('member-id').value = member.id;
             document.getElementById('name').value = member.name;
             document.getElementById('email').value = member.email;
             document.getElementById('status').value = member.status;
             
-            document.getElementById('modal-overlay').classList.add('active');
+            const overlay = document.getElementById('modal-overlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
         }
 
         function deleteMember(id) {
-            if(confirm('정말로 이 회원을 삭제하시겠습니까?')) {
+            if(confirm('이 회원을 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.')) {
                 members = members.filter(m => m.id !== id);
                 renderTable();
             }
         }
 
-        // Initial Render
         renderTable();
     </script>
 </body>
