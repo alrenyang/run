@@ -5,6 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>솔라러닝크루 - 회원 관리</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* 추가 스타일: 탭 메뉴 */
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .tab-item { padding: 0.6rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; transition: all 0.2s; }
+        .tab-item.active { background: var(--primary-color); color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* 모바일 대응 버튼 스타일 보완 */
+        .btn-sm { padding: 0.4rem 0.6rem; font-size: 0.85rem; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+        
+        @media (max-width: 480px) {
+            .data-table th, .data-table td { padding: 0.75rem 0.5rem; font-size: 0.85rem; }
+            .btn-sm { padding: 0.3rem 0.5rem; font-size: 0.8rem; }
+            .tabs { padding-left: 0.25rem; padding-right: 0.25rem; }
+        }
+    </style>
 </head>
 <body>
     <aside>
@@ -21,7 +38,7 @@
             <a href="records.html" class="nav-item">
                 <span class="nav-icon">📋</span><span>기록 등록</span>
             </a>
-            <a href="members.html" class="nav-item active" id="nav-members" style="display: none;">
+            <a href="members.html" class="nav-item active" id="nav-members">
                 <span class="nav-icon">👤</span><span>회원 관리</span>
             </a>
         </nav>
@@ -33,36 +50,71 @@
                 <h1>회원 관리</h1>
                 <div style="color: var(--text-muted); font-size: 0.85rem;" id="date-display">--</div>
             </div>
-            <button class="btn btn-primary btn-lg" onclick="window.openModal()" style="margin-top: 0.5rem;">
-                <span style="font-size: 1.4rem;">+</span> 신규 회원 등록하기
-            </button>
         </header>
 
-        <div class="card">
-            <h3 style="margin-bottom: 1.25rem;">회원별 목표 및 정보</h3>
-            <div style="overflow-x: auto; margin: 0 -0.75rem;">
-                <table class="data-table" style="min-width: 480px; width: 100%;">
-                    <thead>
-                        <tr>
-                            <th style="padding-left: 0.75rem; width: 40px;">#</th>
-                            <th style="width: 80px;">이름</th>
-                            <th style="width: 80px;">최소거리</th>
-                            <th style="width: 70px;">최소시간</th>
-                            <th style="width: 60px;">주간횟수</th>
-                            <th style="padding-right: 0.75rem; text-align: right;">관리</th>
-                        </tr>
-                    </thead>
-                    <tbody id="member-list">
-                        <tr>
-                            <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">데이터를 불러오는 중...</td>
-                        </tr>
-                    </tbody>
-                </table>
+        <!-- 탭 메뉴 -->
+        <div class="tabs">
+            <div class="tab-item active" onclick="switchTab('member-tab', this)">🏃 회원 목표 관리</div>
+            <div class="tab-item" onclick="switchTab('account-tab', this)">🔐 앱 계정 관리</div>
+        </div>
+
+        <!-- 탭 1: 회원 목표 관리 -->
+        <div id="member-tab" class="tab-content active">
+            <div style="margin-bottom: 1rem;">
+                <button class="btn btn-primary btn-lg" onclick="window.openModal()" style="width: 100%;">
+                    <span style="font-size: 1.2rem; margin-right: 0.5rem;">+</span> 신규 회원 등록하기
+                </button>
+            </div>
+            <div class="card">
+                <h3 style="margin-bottom: 1.25rem;">회원별 목표 및 정보</h3>
+                <div style="overflow-x: auto; margin: 0 -0.75rem;">
+                    <table class="data-table" style="min-width: 480px; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="padding-left: 0.75rem; width: 40px;">#</th>
+                                <th style="width: 80px;">이름</th>
+                                <th style="width: 80px;">최소거리</th>
+                                <th style="width: 70px;">최소시간</th>
+                                <th style="width: 60px;">주간횟수</th>
+                                <th style="padding-right: 0.75rem; text-align: right;">관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="member-list">
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">데이터를 불러오는 중...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 탭 2: 앱 계정 관리 -->
+        <div id="account-tab" class="tab-content">
+            <div class="card">
+                <h3 style="margin-bottom: 1.25rem;">가입된 앱 계정 목록</h3>
+                <div style="overflow-x: auto; margin: 0 -0.75rem;">
+                    <table class="data-table" style="min-width: 480px; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="padding-left: 0.75rem;">아이디(이름)</th>
+                                <th>비밀번호</th>
+                                <th style="width: 70px;">권한</th>
+                                <th style="padding-right: 0.75rem; text-align: right;">관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="account-list">
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">데이터를 불러오는 중...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- Popup Modal: Member Add/Edit -->
+    <!-- Modal: Member Add/Edit (Existing) -->
     <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
         <div class="modal">
             <div class="modal-header">
@@ -99,74 +151,36 @@
         </div>
     </div>
 
-    <!-- Popup Modal: Member Statistics (Keep existing functionality) -->
-    <div class="modal-overlay" id="stats-modal-overlay" onclick="handleOverlayClick(event)">
+    <!-- Modal: Account Edit (New) -->
+    <div class="modal-overlay" id="account-modal-overlay" onclick="handleOverlayClick(event)">
         <div class="modal">
             <div class="modal-header">
-                <h3>회원 활동 기록</h3>
-                <button onclick="closeStatsModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
+                <h3>계정 정보 수정</h3>
+                <button onclick="closeAccountModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
             </div>
             <div class="modal-body">
-                <div id="stats-member-info" style="text-align: center; margin-bottom: 1rem;">
-                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);" id="stats-member-name">--</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">활동 이력 및 통계</div>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-box">
-                        <span class="label">이번 달 거리</span>
-                        <span class="value" id="monthly-dist">0.0k</span>
-                    </div>
-                    <div class="stat-box">
-                        <span class="label">최근 7일 거리</span>
-                        <span class="value" id="weekly-dist">0.0k</span>
-                    </div>
-                </div>
-                <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem;">최근 활동 (주차별 구분)</div>
-                <div class="history-list" id="history-items"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeStatsModal()">닫기</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Popup Modal: Edit Specific Log Record -->
-    <div class="modal-overlay" id="edit-specific-log-modal" onclick="window.handleOverlayClick(event)">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>활동 기록 수정</h3>
-                <button onclick="window.closeSpecificEditModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted); padding: 0.5rem;">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="specific-log-form">
-                    <input type="hidden" id="spec-log-id">
-                    <input type="hidden" id="spec-member-id">
+                <form id="account-form" onsubmit="event.preventDefault();">
+                    <input type="hidden" id="account-doc-id">
                     <div class="form-group">
-                        <label>운동 날짜</label>
-                        <input type="date" id="spec-date" class="form-control">
+                        <label>아이디 (이름)</label>
+                        <input type="text" id="account-name" class="form-control" readonly style="background-color: #f1f5f9;">
                     </div>
                     <div class="form-group">
-                        <label>러닝 장소</label>
-                        <select id="spec-location" class="form-control">
-                            <option value="실외">실외 (Outdoor)</option>
-                            <option value="실내">실내 (Indoor)</option>
+                        <label>비밀번호</label>
+                        <input type="text" id="account-pw" class="form-control" placeholder="새 비밀번호 입력">
+                    </div>
+                    <div class="form-group">
+                        <label>권한 설정</label>
+                        <select id="account-role" class="form-control">
+                            <option value="user">일반 사용자 (user)</option>
+                            <option value="admin">관리자 (admin)</option>
                         </select>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div class="form-group">
-                            <label>거리 (km)</label>
-                            <input type="number" id="spec-distance" class="form-control" step="0.1">
-                        </div>
-                        <div class="form-group">
-                            <label>페이스</label>
-                            <input type="text" id="spec-pace" class="form-control">
-                        </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="window.closeSpecificEditModal()">취소</button>
-                <button class="btn btn-primary" onclick="window.saveSpecificLogEdit()">수정 완료</button>
+                <button class="btn btn-outline" onclick="closeAccountModal()">취소</button>
+                <button class="btn btn-primary" onclick="saveAccount()">수정 완료</button>
             </div>
         </div>
     </div>
@@ -186,20 +200,15 @@
                 window.location.href = 'index.html';
                 return null;
             }
-            // 관리자면 메뉴 표시
-            const navMembers = document.getElementById('nav-members');
-            if (navMembers) navMembers.style.display = 'flex';
-            
             return user;
         };
         const currentUser = checkAdminAuth();
-        if (!currentUser) throw new Error("Unauthorized"); // 스크립트 중단
+        if (!currentUser) throw new Error("Unauthorized");
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 🔥 본인의 Firebase 설정값으로 교체해 주세요!
         const firebaseConfig = {
             apiKey: "AIzaSyD1TE3jtcdcH6UvbfPGIy_IeaVivg2YvPA",
             authDomain: "run-app-268d5.firebaseapp.com",
@@ -212,26 +221,32 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const membersCol = collection(db, "members");
+        const usersCol = collection(db, "app_users");
+
+        // 탭 전환 함수
+        window.switchTab = (tabId, el) => {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            el.classList.add('active');
+        };
 
         // 오늘 날짜 표시
         const today = new Date();
         document.getElementById('date-display').innerText = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-        // 회원 목록 실시간 렌더링
+        // [1] 회원 목록 실시간 렌더링
         onSnapshot(query(membersCol, orderBy("name")), (snapshot) => {
             const tbody = document.getElementById('member-list');
             tbody.innerHTML = '';
-            
             if(snapshot.empty) {
                 tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">등록된 회원이 없습니다.</td></tr>';
                 return;
             }
-
             let index = 1;
             snapshot.forEach((doc) => {
                 const member = doc.data();
                 const tr = document.createElement('tr');
-                
                 tr.innerHTML = `
                     <td style="padding-left: 0.75rem; color: var(--text-muted); font-size: 0.75rem;">${index++}</td>
                     <td style="font-weight: 600; color: var(--text-main);">${member.name}</td>
@@ -240,8 +255,8 @@
                     <td><span style="background: #f3f4f6; padding: 0.15rem 0.35rem; border-radius: 0.4rem; font-family: monospace; font-size: 0.8rem;">${member.weeklyCount || 0} 회</span></td>
                     <td style="padding-right: 0.75rem; text-align: right;">
                         <div style="display: flex; gap: 0.3rem; justify-content: flex-end;">
-                            <button class="btn btn-outline btn-sm" style="padding: 0.3rem 0.5rem;" onclick="window.editMember('${doc.id}', '${member.name}', ${member.minDistance || 0}, ${member.minTime || 0}, ${member.weeklyCount || 0})">수정</button>
-                            <button class="btn btn-danger btn-sm" style="padding: 0.3rem 0.5rem;" onclick="window.deleteMember('${doc.id}', '${member.name}')">삭제</button>
+                            <button class="btn btn-outline btn-sm" onclick="window.editMember('${doc.id}', '${member.name}', ${member.minDistance || 0}, ${member.minTime || 0}, ${member.weeklyCount || 0})">수정</button>
+                            <button class="btn btn-danger btn-sm" onclick="window.deleteMember('${doc.id}', '${member.name}')">삭제</button>
                         </div>
                     </td>
                 `;
@@ -249,99 +264,40 @@
             });
         });
 
-        // 회원별 통계 보기
-        window.showStats = async (memberId, memberName) => {
-            document.getElementById('stats-member-name').innerText = memberName;
-            const historyContainer = document.getElementById('history-items');
-            historyContainer.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--text-muted);">데이터 분석 중...</div>';
-            
-            const overlay = document.getElementById('stats-modal-overlay');
-            overlay.style.display = 'flex';
-            setTimeout(() => overlay.classList.add('active'), 10);
-
-            try {
-                const q = query(collection(db, "activity_logs"), where("memberId", "==", memberId));
-                const querySnapshot = await getDocs(q);
-                
-                let monthlyDist = 0;
-                let weeklyDist = 0;
-                const now = new Date();
-                const oneMonthAgo = new Date(); oneMonthAgo.setMonth(now.getMonth() - 1);
-                const oneWeekAgo = new Date(); oneWeekAgo.setDate(now.getDate() - 7);
-                
-                historyContainer.innerHTML = '';
-                
-                if (querySnapshot.empty) {
-                    historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">등록된 활동 기록이 없습니다.</div>';
-                    document.getElementById('monthly-dist').innerText = "0.0k";
-                    document.getElementById('weekly-dist').innerText = "0.0k";
-                    return;
-                }
-
-                const logs = [];
-                querySnapshot.forEach((docSnap) => logs.push(docSnap.data()));
-                logs.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-                logs.forEach((log) => {
-                    const logDate = new Date(log.date);
-                    if (logDate >= oneMonthAgo) monthlyDist += log.distance;
-                    if (logDate >= oneWeekAgo) weeklyDist += log.distance;
-                    const weekNum = getWeekNumber(logDate);
-                    // 항목 추가
-                    const item = document.createElement('div');
-                    item.className = `history-item ${weekClass}`;
-                    item.style.flexDirection = 'column';
-                    item.style.alignItems = 'flex-start';
-
-                    let actionsHtml = '';
-                    if (currentUser.role === 'admin') {
-                        actionsHtml = `
-                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; justify-content: flex-end; width: 100%;">
-                                <button class="btn btn-outline btn-sm" style="flex: 1; min-height: 44px; font-size: 0.9rem;" onclick="window.openSpecificEditModal('${docSnap.id}', '${memberId}', '${log.date}', ${log.distance}, '${log.pace}', '${log.location || '실외'}')">수정</button>
-                                <button class="btn btn-danger btn-sm" style="flex: 1; min-height: 44px; font-size: 0.9rem;" onclick="window.deleteSpecificLog('${docSnap.id}', '${memberId}')">삭제</button>
-                            </div>
-                        `;
-                    }
-
-                    item.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                            <div class="date" style="font-size: 0.95rem;">${log.date} <small style="font-weight:400; color:#64748b;">[${log.location || '실외'}]</small></div>
-                            <div class="metrics" style="text-align: right;">
-                                <span class="dist" style="display:block; font-size: 1rem;">${log.distance}km</span>
-                                <div class="pace" style="font-size: 0.8rem;">${log.pace}</div>
-                            </div>
-                        </div>
-                        ${actionsHtml}
-                    `;
-                    historyContainer.appendChild(item);
-
-                    });
-
-                document.getElementById('monthly-dist').innerText = monthlyDist.toFixed(1) + "k";
-                document.getElementById('weekly-dist').innerText = weeklyDist.toFixed(1) + "k";
-            } catch (e) {
-                historyContainer.innerHTML = '<div style="text-align:center; padding:1rem; color:red;">기록을 불러오지 못했습니다.</div>';
+        // [2] 앱 계정 목록 실시간 렌더링
+        onSnapshot(query(usersCol, orderBy("name")), (snapshot) => {
+            const tbody = document.getElementById('account-list');
+            tbody.innerHTML = '';
+            if(snapshot.empty) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">가입된 계정이 없습니다.</td></tr>';
+                return;
             }
-        };
+            snapshot.forEach((doc) => {
+                const user = doc.data();
+                const tr = document.createElement('tr');
+                const roleBadge = user.role === 'admin' ? 
+                    '<span style="color: #ef4444; font-weight: 800;">관리자</span>' : 
+                    '<span style="color: #64748b;">일반</span>';
+                
+                tr.innerHTML = `
+                    <td style="padding-left: 0.75rem; font-weight: 600;">${user.name}</td>
+                    <td style="font-family: monospace;">${user.password}</td>
+                    <td>${roleBadge}</td>
+                    <td style="padding-right: 0.75rem; text-align: right;">
+                        <div style="display: flex; gap: 0.3rem; justify-content: flex-end;">
+                            <button class="btn btn-outline btn-sm" onclick="window.openAccountModal('${doc.id}', '${user.name}', '${user.password}', '${user.role || 'user'}')">수정</button>
+                            <button class="btn btn-danger btn-sm" onclick="window.deleteAccount('${doc.id}', '${user.name}')">삭제</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        });
 
-        function getWeekNumber(d) {
-            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-            return weekNo;
-        }
-
-        window.closeStatsModal = () => {
-            const overlay = document.getElementById('stats-modal-overlay');
-            overlay.classList.remove('active');
-            setTimeout(() => { overlay.style.display = 'none'; }, 300);
-        };
-
+        // --- 회원 관리 로직 ---
         window.openModal = () => {
             document.getElementById('modal-title').innerText = '신규 회원 등록';
-            const form = document.getElementById('member-form');
-            if (form) form.reset();
+            document.getElementById('member-form').reset();
             document.getElementById('member-doc-id').value = '';
             const overlay = document.getElementById('modal-overlay');
             overlay.style.display = 'flex';
@@ -362,43 +318,24 @@
             const weeklyCount = parseInt(document.getElementById('weeklyCount').value) || 0;
 
             if(!name) return alert('이름을 입력해 주세요.');
-
             try {
                 const data = { name, minDistance, minTime, weeklyCount };
-                if(id) {
-                    await updateDoc(doc(db, "members", id), data);
-                } else {
-                    await addDoc(membersCol, data);
-                }
+                if(id) await updateDoc(doc(db, "members", id), data);
+                else await addDoc(membersCol, data);
                 window.closeModal();
-            } catch (e) {
-                alert("저장 오류: " + e.message);
-            }
+            } catch (e) { alert("저장 오류: " + e.message); }
         };
 
         window.deleteMember = async (id, name) => {
-            if(!confirm(`'${name}' 회원을 정말 삭제하시겠습니까?\n삭제 시 해당 회원의 모든 활동 기록도 함께 영구 삭제됩니다.`)) return;
-            
+            if(!confirm(`'${name}' 회원을 삭제하시겠습니까? 관련 활동 기록도 모두 삭제됩니다.`)) return;
             try {
-                // 1. 해당 회원의 모든 활동 로그(activity_logs) 삭제
                 const q = query(collection(db, "activity_logs"), where("memberId", "==", id));
-                const snapshot = await getDocs(q);
-                
-                const deletePromises = [];
-                snapshot.forEach((logDoc) => {
-                    deletePromises.push(deleteDoc(doc(db, "activity_logs", logDoc.id)));
-                });
-                
-                await Promise.all(deletePromises);
-                console.log(`${name}님의 활동 로그 ${deletePromises.length}건 삭제 완료`);
-
-                // 2. 회원 정보 삭제
+                const snap = await getDocs(q);
+                const batch = []; snap.forEach(l => batch.push(deleteDoc(doc(db, "activity_logs", l.id))));
+                await Promise.all(batch);
                 await deleteDoc(doc(db, "members", id));
-                alert('회원 정보 및 모든 활동 데이터가 삭제되었습니다.');
-            } catch (e) {
-                console.error("Delete error:", e);
-                alert("삭제 중 오류가 발생했습니다: " + e.message);
-            }
+                alert('삭제되었습니다.');
+            } catch (e) { alert("삭제 오류: " + e.message); }
         };
 
         window.editMember = (id, name, minDistance, minTime, weeklyCount) => {
@@ -413,80 +350,49 @@
             setTimeout(() => overlay.classList.add('active'), 10);
         };
 
-        // --- 개별 기록 수정/삭제 기능 (관리자 전용) ---
-        window.deleteSpecificLog = async (logId, memberId) => {
-            if (!confirm('이 기록을 정말 삭제하시겠습니까?')) return;
-            try {
-                await deleteDoc(doc(db, "activity_logs", logId));
-                await recalculateMemberStats(memberId);
-                alert('기록이 삭제되었습니다.');
-                window.closeStatsModal();
-            } catch (e) {
-                alert('삭제 오류: ' + e.message);
-            }
-        };
-
-        window.openSpecificEditModal = (logId, memberId, date, distance, pace, location) => {
-            document.getElementById('spec-log-id').value = logId;
-            document.getElementById('spec-member-id').value = memberId;
-            document.getElementById('spec-date').value = date;
-            document.getElementById('spec-distance').value = distance;
-            document.getElementById('spec-pace').value = pace;
-            document.getElementById('spec-location').value = location;
-
-            const overlay = document.getElementById('edit-specific-log-modal');
+        // --- 앱 계정 관리 로직 ---
+        window.openAccountModal = (id, name, pw, role) => {
+            document.getElementById('account-doc-id').value = id;
+            document.getElementById('account-name').value = name;
+            document.getElementById('account-pw').value = pw;
+            document.getElementById('account-role').value = role;
+            const overlay = document.getElementById('account-modal-overlay');
             overlay.style.display = 'flex';
             setTimeout(() => overlay.classList.add('active'), 10);
         };
 
-        window.closeSpecificEditModal = () => {
-            const overlay = document.getElementById('edit-specific-log-modal');
+        window.closeAccountModal = () => {
+            const overlay = document.getElementById('account-modal-overlay');
             overlay.classList.remove('active');
             setTimeout(() => { overlay.style.display = 'none'; }, 300);
         };
 
-        window.saveSpecificLogEdit = async () => {
-            const logId = document.getElementById('spec-log-id').value;
-            const memberId = document.getElementById('spec-member-id').value;
-            const date = document.getElementById('spec-date').value;
-            const distance = parseFloat(document.getElementById('spec-distance').value);
-            const pace = document.getElementById('spec-pace').value;
-            const location = document.getElementById('spec-location').value;
+        window.saveAccount = async () => {
+            const id = document.getElementById('account-doc-id').value;
+            const password = document.getElementById('account-pw').value;
+            const role = document.getElementById('account-role').value;
 
-            if(!date || isNaN(distance) || !pace) return alert('정보를 모두 입력해 주세요.');
-
+            if(!password) return alert('비밀번호를 입력해 주세요.');
             try {
-                await updateDoc(doc(db, "activity_logs", logId), {
-                    date, distance, pace, location
-                });
-                await recalculateMemberStats(memberId);
-                alert('기록이 수정되었습니다.');
-                window.closeSpecificEditModal();
-                window.closeStatsModal();
-            } catch (e) {
-                alert('수정 오류: ' + e.message);
-            }
+                await updateDoc(doc(db, "app_users", id), { password, role });
+                alert('계정 정보가 수정되었습니다.');
+                window.closeAccountModal();
+            } catch (e) { alert("수정 오류: " + e.message); }
         };
 
-        async function recalculateMemberStats(memberId) {
-            const q = query(collection(db, "activity_logs"), where("memberId", "==", memberId));
-            const snapshot = await getDocs(q);
-            let totalDist = 0;
-            let totalCount = 0;
-            snapshot.forEach(d => {
-                totalDist += d.data().distance;
-                totalCount += 1;
-            });
-            await updateDoc(doc(db, "members", memberId), {
-                distance: Number(totalDist.toFixed(1)),
-                count: totalCount
-            });
-        }
+        window.deleteAccount = async (id, name) => {
+            if(name === currentUser.name) return alert('본인 계정은 삭제할 수 없습니다.');
+            if(!confirm(`'${name}' 계정을 삭제하시겠습니까? 이 사용자는 더 이상 로그인할 수 없게 됩니다.`)) return;
+            try {
+                await deleteDoc(doc(db, "app_users", id));
+                alert('계정이 삭제되었습니다.');
+            } catch (e) { alert("삭제 오류: " + e.message); }
+        };
 
         window.handleOverlayClick = (e) => {
             if(e.target.classList.contains('modal-overlay')) {
                 window.closeModal();
-                window.closeStatsModal();
+                window.closeAccountModal();
             }
         };
     </script>
