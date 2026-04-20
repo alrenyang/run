@@ -145,15 +145,23 @@
         const db = getFirestore(app);
         const membersCol = collection(db, "members");
 
+        // 권한에 따른 쿼리 설정: 관리자면 전체, 일반 유저면 본인 이름만
+        let memberQuery = membersCol;
+        if (currentUser.role !== 'admin') {
+            memberQuery = query(membersCol, where("name", "==", currentUser.name));
+        }
+
         // 회원 목록을 실시간으로 가져와서 표에 표시
-        onSnapshot(membersCol, (snapshot) => {
+        onSnapshot(memberQuery, (snapshot) => {
             console.log("파이어베이스 데이터 수신중...");
             const tbody = document.getElementById('member-record-list');
             tbody.innerHTML = '';
             
             if(snapshot.empty) {
-                console.warn("데이터가 비어있습니다. '회원 관리' 페이지에서 회원을 먼저 등록하세요.");
-                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 3rem; color: var(--text-muted);">회원 관리 페이지에서 회원을 먼저 등록해 주세요.</td></tr>';
+                const msg = currentUser.role === 'admin' ? 
+                    '회원 관리 페이지에서 회원을 먼저 등록해 주세요.' : 
+                    '등록된 회원 정보가 없습니다. 관리자에게 문의하세요.';
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 3rem; color: var(--text-muted);">${msg}</td></tr>`;
                 return;
             }
 
@@ -171,7 +179,7 @@
                 `;
                 tbody.appendChild(tr);
             });
-            console.log(`${snapshot.size}명의 회원을 불러왔습니다.`);
+            console.log(`${snapshot.size}명의 데이터를 불러왔습니다.`);
         }, (error) => {
             console.error("데이터 로드 에러:", error);
             document.getElementById('member-record-list').innerHTML = `<tr><td colspan="3" style="text-align: center; color: red;">에러 발생: ${error.message}</td></tr>`;
