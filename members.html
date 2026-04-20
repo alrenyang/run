@@ -126,7 +126,9 @@
                     <input type="hidden" id="member-doc-id">
                     <div class="form-group">
                         <label for="name">회원 이름</label>
-                        <input type="text" id="name" class="form-control" placeholder="성함을 입력하세요">
+                        <select id="name" class="form-control">
+                            <option value="">회원을 선택하세요</option>
+                        </select>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
@@ -267,7 +269,13 @@
         // [2] 앱 계정 목록 실시간 렌더링
         onSnapshot(query(usersCol, orderBy("name")), (snapshot) => {
             const tbody = document.getElementById('account-list');
+            const nameSelect = document.getElementById('name');
+            const currentSelectedName = nameSelect.value;
+            
             tbody.innerHTML = '';
+            // 회원 이름 선택 드롭다운 초기화
+            nameSelect.innerHTML = '<option value="">회원을 선택하세요</option>';
+            
             if(snapshot.empty) {
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">가입된 계정이 없습니다.</td></tr>';
                 return;
@@ -291,7 +299,18 @@
                     </td>
                 `;
                 tbody.appendChild(tr);
+
+                // 회원 이름 선택 드롭다운 옵션 추가
+                const option = document.createElement('option');
+                option.value = user.name;
+                option.textContent = user.name;
+                nameSelect.appendChild(option);
             });
+
+            // 이전에 선택되었던 값 복원 (수정 모드 대비)
+            if (currentSelectedName) {
+                nameSelect.value = currentSelectedName;
+            }
         });
 
         // --- 회원 관리 로직 ---
