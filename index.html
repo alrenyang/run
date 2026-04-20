@@ -154,7 +154,8 @@
                 if (snapshot.empty) {
                     alert('이름 또는 비밀번호가 일치하지 않습니다.');
                 } else {
-                    const userData = { name };
+                    const userDoc = snapshot.docs[0].data();
+                    const userData = { name: userDoc.name, role: userDoc.role || 'user' };
                     localStorage.setItem('crew_user', JSON.stringify(userData));
                     checkAuth();
                 }
@@ -165,7 +166,7 @@
                 if (!snapshot.empty) {
                     return alert('이미 존재하는 이름입니다.');
                 }
-                await addDoc(usersCol, { name, password: pw });
+                await addDoc(usersCol, { name, password: pw, role: 'user' });
                 alert('회원가입이 완료되었습니다! 로그인 해주세요.');
                 window.toggleAuthMode();
             }
@@ -183,6 +184,13 @@
                 document.getElementById('user-display-name').innerText = userData.name;
                 document.getElementById('auth-section').classList.remove('active');
                 document.getElementById('app-section').classList.add('active');
+
+                // 권한에 따른 메뉴 제어
+                const navMembers = document.querySelector('a[href="members.html"]');
+                if (navMembers) {
+                    navMembers.style.display = (userData.role === 'admin') ? 'flex' : 'none';
+                }
+
                 initDashboard();
             } else {
                 document.getElementById('auth-section').classList.add('active');
