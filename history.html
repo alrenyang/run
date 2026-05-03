@@ -289,7 +289,7 @@
         }
 
         // 1. 실시간 누계 데이터 렌더링
-        onSnapshot(query(membersCol, orderBy("distance", "desc")), (snapshot) => {
+        onSnapshot(query(membersCol, orderBy("name")), (snapshot) => {
             const tbody = document.getElementById('history-list');
             const thead = document.querySelector('#cumulative-tab thead tr');
             tbody.innerHTML = '';
@@ -299,8 +299,19 @@
                 if (manageHeader) manageHeader.style.display = 'none';
             }
 
-            snapshot.forEach((docSnap) => {
-                const m = docSnap.data();
+            // 모든 회원을 배열에 담고 거리순으로 클라이언트 측 정렬 (필드 누락 방지)
+            const members = [];
+            snapshot.forEach(docSnap => {
+                members.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            members.sort((a, b) => (b.distance || 0) - (a.distance || 0));
+
+            if (members.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted);">등록된 회원이 없습니다.</td></tr>';
+                return;
+            }
+
+            members.forEach((m) => {
                 const totalMinutes = m.totalTime || 0;
                 const h = Math.floor(totalMinutes / 60);
                 const min = Math.round(totalMinutes % 60);
@@ -308,7 +319,7 @@
 
                 const tr = document.createElement('tr');
                 let rowHtml = `
-                    <td style="padding-left: 0.75rem; font-weight: 700; color: var(--primary-color); cursor: pointer;" onclick="window.showStats('${docSnap.id}', '${m.name}')">${m.name}</td>
+                    <td style="padding-left: 0.75rem; font-weight: 700; color: var(--primary-color); cursor: pointer;" onclick="window.showStats('${m.id}', '${m.name}')">${m.name}</td>
                     <td><span style="color: var(--text-main); font-weight: 800;">${m.distance || 0}</span> km</td>
                     <td><span style="font-family: monospace; font-size: 0.85rem;">${m.pace || "0'00\""}</span></td>
                     <td style="font-size: 0.85rem;">${timeStr}</td>

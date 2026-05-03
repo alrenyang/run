@@ -344,9 +344,26 @@
 
             if(!name) return alert('이름을 입력해 주세요.');
             try {
-                const data = { name, minDistance, paceMin, paceSec, weeklyCount };
-                if(id) await updateDoc(doc(db, "members", id), data);
-                else await addDoc(membersCol, data);
+                if(id) {
+                    // 수정 시에는 기존 기록 데이터 유지
+                    const data = { name, minDistance, paceMin, paceSec, weeklyCount };
+                    await updateDoc(doc(db, "members", id), data);
+                } else {
+                    // 신규 등록 시 모든 데이터 필드 초기화 (정렬 오류 방지)
+                    const data = { 
+                        name, 
+                        minDistance, 
+                        paceMin, 
+                        paceSec, 
+                        weeklyCount,
+                        distance: 0,
+                        count: 0,
+                        totalTime: 0,
+                        cumulativePenalty: 0,
+                        pace: "0'00\""
+                    };
+                    await addDoc(membersCol, data);
+                }
                 window.closeModal();
             } catch (e) { alert("저장 오류: " + e.message); }
         };
