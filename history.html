@@ -265,6 +265,14 @@
             }
         };
 
+        // 날짜를 YYYY-MM-DD 형식의 현지 시간 문자열로 변환 (리셋 정확도 향상)
+        function formatDateLocal(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         // 이번 주 월요일/일요일 날짜 계산
         function getCurrentWeekRange() {
             const today = new Date();
@@ -274,7 +282,10 @@
             monday.setHours(0, 0, 0, 0);
             const sunday = new Date(new Date(monday).setDate(monday.getDate() + 6));
             sunday.setHours(23, 59, 59, 999);
-            return { monday, sunday };
+            return { 
+                mondayStr: formatDateLocal(monday), 
+                sundayStr: formatDateLocal(sunday) 
+            };
         }
 
         // 1. 실시간 누계 데이터 렌더링
@@ -325,9 +336,7 @@
 
         // 1-2. 주간 달성 현황 렌더링 함수
         async function renderWeeklyStatus() {
-            const { monday, sunday } = getCurrentWeekRange();
-            const mondayStr = monday.toISOString().split('T')[0];
-            const sundayStr = sunday.toISOString().split('T')[0];
+            const { mondayStr, sundayStr } = getCurrentWeekRange();
             document.getElementById('week-range-display').innerText = `${mondayStr} ~ ${sundayStr}`;
 
             const tbody = document.getElementById('weekly-status-list');
@@ -339,7 +348,7 @@
                 const members = [];
                 memberSnap.forEach(d => members.push({ id: d.id, ...d.data() }));
 
-                // 이번 주 모든 로그 가져오기
+                // 이번 주 모든 로그 가져오기 (현지 날짜 문자열 기준)
                 const q = query(logsCol, where("date", ">=", mondayStr), where("date", "<=", sundayStr));
                 const logSnap = await getDocs(q);
                 const weekLogs = [];
@@ -384,7 +393,7 @@
                     // 페이스 벌금 여부 (주간 평균 기준)
                     let paceDisplay = `<span>${avgPaceStr}</span>`;
                     if (avgPaceSecPerKm > targetPaceSec && targetPaceSec > 0) {
-                        paceDisplay = `<div>${avgPaceStr}</div><div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">평균벌금</div>`;
+                        paceDisplay = `<div>${avgPaceStr}</div><div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">페이스벌금</div>`;
                     }
 
                     const tr = document.createElement('tr');
