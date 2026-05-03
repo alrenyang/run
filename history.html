@@ -601,13 +601,22 @@
         };
 
         window.deleteSpecificLog = async (logId, memberId) => {
+            if (!logId || !memberId) return alert('삭제할 기록 정보가 올바르지 않습니다.');
             if (!confirm('이 기록을 정말 삭제하시겠습니까?')) return;
             try {
-                await deleteDoc(doc(db, "activity_logs", logId));
+                // 정확하게 activity_logs 컬렉션에서만 삭제하도록 명시
+                const logRef = doc(db, "activity_logs", logId);
+                await deleteDoc(logRef);
+                
+                // 해당 회원의 통계만 재계산
                 await recalculateMemberStats(memberId);
-                alert('삭제되었습니다.');
+                
+                alert('기록이 삭제되었습니다.');
                 window.showStats(memberId, document.getElementById('stats-member-name').innerText);
-            } catch (e) { alert('삭제 중 오류 발생'); }
+            } catch (e) { 
+                console.error("삭제 중 오류:", e);
+                alert('삭제 중 오류가 발생했습니다: ' + e.message); 
+            }
         };
 
         async function recalculateMemberStats(memberId) {
@@ -615,7 +624,14 @@
             const snap = await getDocs(q);
             
             // 회원 정보에서 목표 페이스 가져오기
-            const memberDoc = await getDoc(doc(db, "members", memberId));
+            const memberRef = doc(db, "members", memberId);
+            const memberDoc = await getDoc(memberRef);
+            
+            if (!memberDoc.exists()) {
+                console.warn("회원 정보가 존재하지 않아 통계를 업데이트할 수 없습니다.");
+                return;
+            }
+
             const mData = memberDoc.data();
             const targetPaceSec = (mData.paceMin || 0) * 60 + (mData.paceSec || 0);
 
