@@ -102,6 +102,7 @@
                                 <th style="width: 80px;">페이스</th>
                                 <th style="width: 90px;">총시간</th>
                                 <th style="width: 60px;">횟수</th>
+                                <th style="width: 90px; text-align: center;">누적벌금횟수</th>
                                 <th style="padding-right: 0.75rem; text-align: right;">관리</th>
                             </tr>
                         </thead>
@@ -128,6 +129,7 @@
                                 <th style="width: 160px;">주간거리 (누적/목표)</th>
                                 <th style="width: 80px;">러닝횟수</th>
                                 <th style="width: 120px;">평균페이스</th>
+                                <th style="width: 80px; text-align: center;">벌금횟수</th>
                                 <th style="padding-right: 0.75rem; text-align: center;">주간달성상태</th>
                             </tr>
                         </thead>
@@ -235,7 +237,7 @@
         if (!currentUser) throw new Error("Unauthorized");
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } 
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs, getDoc } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -300,6 +302,7 @@
                     <td><span style="font-family: monospace; font-size: 0.85rem;">${m.pace || "0'00\""}</span></td>
                     <td style="font-size: 0.85rem;">${timeStr}</td>
                     <td>${m.count || 0} 회</td>
+                    <td style="text-align: center; font-weight: 800; color: ${(m.cumulativePenalty || 0) > 0 ? '#ef4444' : 'var(--text-main)'};">${m.cumulativePenalty || 0} 회</td>
                 `;
 
                 if (currentUser.role === 'admin') {
@@ -328,7 +331,7 @@
             document.getElementById('week-range-display').innerText = `${mondayStr} ~ ${sundayStr}`;
 
             const tbody = document.getElementById('weekly-status-list');
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-muted);">계산 중...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">계산 중...</td></tr>';
 
             try {
                 // 모든 회원 정보 가져오기
@@ -348,21 +351,29 @@
                     const myLogs = weekLogs.filter(l => l.memberId === m.id);
                     let weeklyDist = 0;
                     let weeklySeconds = 0;
+                    let penaltyCount = 0;
+                    
+                    // 목표 페이스(초/km) 계산
+                    const targetPaceSec = (m.paceMin || 0) * 60 + (m.paceSec || 0);
+
                     myLogs.forEach(l => {
                         weeklyDist += (l.distance || 0);
                         const paceMatch = (l.pace || "").match(/(\d+)'(\d+)"/);
                         if (paceMatch) {
                             const mm = parseInt(paceMatch[1]);
                             const ss = parseInt(paceMatch[2]);
-                            weeklySeconds += (mm * 60 + ss) * (l.distance || 0);
+                            const currentLogPaceSec = mm * 60 + ss;
+                            weeklySeconds += currentLogPaceSec * (l.distance || 0);
+                            
+                            // 개별 기록의 페이스가 설정된 목표 페이스보다 느릴 경우 벌금 횟수 증가
+                            if (targetPaceSec > 0 && currentLogPaceSec > targetPaceSec) {
+                                penaltyCount++;
+                            }
                         }
                     });
 
                     const avgPaceSecPerKm = weeklyDist > 0 ? weeklySeconds / weeklyDist : 0;
                     const avgPaceStr = formatPace(avgPaceSecPerKm);
-                    
-                    // 목표 페이스(초/km) 계산
-                    const targetPaceSec = (m.paceMin || 0) * 60 + (m.paceSec || 0);
                     
                     // 달성 상태 판단
                     const distGoalMet = weeklyDist >= (m.minDistance || 0);
@@ -370,10 +381,10 @@
                         '<span style="background: #dcfce7; color: #166534; padding: 0.25rem 0.6rem; border-radius: 2rem; font-weight: 800; font-size: 0.8rem;">목표달성</span>' : 
                         '<span style="background: #f1f5f9; color: #64748b; padding: 0.25rem 0.6rem; border-radius: 2rem; font-weight: 800; font-size: 0.8rem;">달리는중</span>';
 
-                    // 페이스 벌금 여부
+                    // 페이스 벌금 여부 (주간 평균 기준)
                     let paceDisplay = `<span>${avgPaceStr}</span>`;
                     if (avgPaceSecPerKm > targetPaceSec && targetPaceSec > 0) {
-                        paceDisplay = `<div>${avgPaceStr}</div><div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">페이스벌금</div>`;
+                        paceDisplay = `<div>${avgPaceStr}</div><div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">평균벌금</div>`;
                     }
 
                     const tr = document.createElement('tr');
@@ -387,6 +398,7 @@
                         </td>
                         <td style="font-weight: 700;">${myLogs.length} <small style="font-weight: 400; color: #94a3b8;">회</small></td>
                         <td>${paceDisplay}</td>
+                        <td style="text-align: center; font-weight: 800; color: ${penaltyCount > 0 ? '#ef4444' : 'var(--text-main)'};">${penaltyCount} 회</td>
                         <td style="padding-right: 0.75rem; text-align: center;">${statusText}</td>
                     `;
                     tbody.appendChild(tr);
@@ -394,7 +406,7 @@
 
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">데이터 로딩 오류</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">데이터 로딩 오류</td></tr>';
             }
         }
 
@@ -602,9 +614,15 @@
             const q = query(logsCol, where("memberId", "==", memberId));
             const snap = await getDocs(q);
             
+            // 회원 정보에서 목표 페이스 가져오기
+            const memberDoc = await getDoc(doc(db, "members", memberId));
+            const mData = memberDoc.data();
+            const targetPaceSec = (mData.paceMin || 0) * 60 + (mData.paceSec || 0);
+
             let totalDist = 0; 
             let totalSeconds = 0;
             let count = 0;
+            let cumulativePenalty = 0;
             
             snap.forEach(l => {
                 const data = l.data();
@@ -615,10 +633,16 @@
                 // 페이스 문자열(M'SS")에서 초 계산
                 const paceMatch = (data.pace || "").match(/(\d+)'(\d+)"/);
                 if (paceMatch) {
-                    const m = parseInt(paceMatch[1]);
-                    const s = parseInt(paceMatch[2]);
+                    const mm = parseInt(paceMatch[1]);
+                    const ss = parseInt(paceMatch[2]);
+                    const currentLogPaceSec = mm * 60 + ss;
                     // 거리 * 초/km = 해당 활동의 총 소요 시간(초)
-                    totalSeconds += (m * 60 + s) * dist;
+                    totalSeconds += currentLogPaceSec * dist;
+
+                    // 개별 기록이 목표 페이스보다 느릴 경우 누적 벌금 카운트
+                    if (targetPaceSec > 0 && currentLogPaceSec > targetPaceSec) {
+                        cumulativePenalty++;
+                    }
                 }
             });
             
@@ -630,7 +654,8 @@
                 distance: Number(totalDist.toFixed(1)), 
                 count: count,
                 totalTime: Number(totalTimeMinutes.toFixed(1)),
-                pace: avgPaceStr
+                pace: avgPaceStr,
+                cumulativePenalty: cumulativePenalty
             });
         }
 

@@ -266,12 +266,25 @@
                 if (memberDoc.exists()) {
                     const current = memberDoc.data();
                     
+                    // 신규 기록이 벌금인지 확인
+                    const targetPaceSec = (current.paceMin || 0) * 60 + (current.paceSec || 0);
+                    const paceMatch = newPace.match(/(\d+)'(\d+)"/);
+                    let isPenalty = false;
+                    if (paceMatch && targetPaceSec > 0) {
+                        const mm = parseInt(paceMatch[1]);
+                        const ss = parseInt(paceMatch[2]);
+                        if ((mm * 60 + ss) > targetPaceSec) {
+                            isPenalty = true;
+                        }
+                    }
+
                     // 기존 값에 더하기 (누적 업데이트)
                     await updateDoc(memberRef, {
                         distance: Number(((current.distance || 0) + newDist).toFixed(1)),
                         count: (current.count || 0) + 1,
                         totalTime: Number(((current.totalTime || 0) + additionalMinutes).toFixed(1)),
-                        pace: newPace
+                        pace: newPace,
+                        cumulativePenalty: (current.cumulativePenalty || 0) + (isPenalty ? 1 : 0)
                     });
 
                     // 히스토리 로그 기록 (activity_logs 컬렉션)
