@@ -6,6 +6,13 @@
     <title>솔라러닝크루 - 회원 기록</title>
     <link rel="stylesheet" href="style.css">
     <style>
+        /* 추가 스타일: 탭 메뉴 */
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .tab-item { padding: 0.6rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; transition: all 0.2s; }
+        .tab-item.active { background: var(--primary-color); color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         .week-container {
             margin-bottom: 2rem;
             background: #fff;
@@ -76,24 +83,59 @@
             <div style="color: var(--text-muted); font-size: 0.85rem;" id="sync-status">실시간 연동 중</div>
         </header>
 
-        <div class="card">
-            <h3 style="margin-bottom: 1.25rem;">누적 활동 데이터</h3>
-            <div style="overflow-x: auto; margin: 0 -0.75rem;">
-                <table class="data-table" style="min-width: 550px; width: 100%;">
-                    <thead>
-                        <tr>
-                            <th style="padding-left: 0.75rem; width: 80px;">회원이름</th>
-                            <th style="width: 90px;">총거리</th>
-                            <th style="width: 80px;">페이스</th>
-                            <th style="width: 90px;">총시간</th>
-                            <th style="width: 60px;">횟수</th>
-                            <th style="padding-right: 0.75rem; text-align: right;">관리</th>
-                        </tr>
-                    </thead>
-                    <tbody id="history-list">
-                        <tr><td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">불러오는 중...</td></tr>
-                    </tbody>
-                </table>
+        <!-- 탭 메뉴 -->
+        <div class="tabs">
+            <div class="tab-item active" onclick="window.switchTab('cumulative-tab', this)">📊 누적 데이터</div>
+            <div class="tab-item" onclick="window.switchTab('weekly-status-tab', this)">🔥 주간달성현황</div>
+        </div>
+
+        <!-- 탭 1: 누적 데이터 -->
+        <div id="cumulative-tab" class="tab-content active">
+            <div class="card">
+                <h3 style="margin-bottom: 1.25rem;">누적 활동 데이터</h3>
+                <div style="overflow-x: auto; margin: 0 -0.75rem;">
+                    <table class="data-table" style="min-width: 550px; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="padding-left: 0.75rem; width: 80px;">회원이름</th>
+                                <th style="width: 90px;">총거리</th>
+                                <th style="width: 80px;">페이스</th>
+                                <th style="width: 90px;">총시간</th>
+                                <th style="width: 60px;">횟수</th>
+                                <th style="padding-right: 0.75rem; text-align: right;">관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-list">
+                            <tr><td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">불러오는 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 탭 2: 주간달성현황 -->
+        <div id="weekly-status-tab" class="tab-content">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                    <h3>주간 달성 현황</h3>
+                    <div id="week-range-display" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">--</div>
+                </div>
+                <div style="overflow-x: auto; margin: 0 -0.75rem;">
+                    <table class="data-table" style="min-width: 650px; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="padding-left: 0.75rem; width: 90px;">회원이름</th>
+                                <th style="width: 160px;">주간거리 (누적/목표)</th>
+                                <th style="width: 80px;">러닝횟수</th>
+                                <th style="width: 120px;">평균페이스</th>
+                                <th style="padding-right: 0.75rem; text-align: center;">주간달성상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="weekly-status-list">
+                            <tr><td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-muted);">데이터를 불러오는 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </main>
@@ -210,10 +252,33 @@
         const membersCol = collection(db, "members");
         const logsCol = collection(db, "activity_logs");
 
+        // 탭 전환 함수
+        window.switchTab = (tabId, el) => {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            el.classList.add('active');
+            if (tabId === 'weekly-status-tab') {
+                renderWeeklyStatus();
+            }
+        };
+
+        // 이번 주 월요일/일요일 날짜 계산
+        function getCurrentWeekRange() {
+            const today = new Date();
+            const day = today.getDay(); // 0(일) ~ 6(토)
+            const diffToMonday = today.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(new Date(today).setDate(diffToMonday));
+            monday.setHours(0, 0, 0, 0);
+            const sunday = new Date(new Date(monday).setDate(monday.getDate() + 6));
+            sunday.setHours(23, 59, 59, 999);
+            return { monday, sunday };
+        }
+
         // 1. 실시간 누계 데이터 렌더링
         onSnapshot(query(membersCol, orderBy("name")), (snapshot) => {
             const tbody = document.getElementById('history-list');
-            const thead = document.querySelector('thead tr');
+            const thead = document.querySelector('#cumulative-tab thead tr');
             tbody.innerHTML = '';
             
             if (currentUser.role !== 'admin') {
@@ -248,7 +313,90 @@
                 tbody.appendChild(tr);
             });
             document.getElementById('sync-status').innerText = "실시간 연동 완료";
+            
+            // 주간 현황도 업데이트 (탭이 활성화된 경우 대비)
+            if (document.getElementById('weekly-status-tab').classList.contains('active')) {
+                renderWeeklyStatus();
+            }
         });
+
+        // 1-2. 주간 달성 현황 렌더링 함수
+        async function renderWeeklyStatus() {
+            const { monday, sunday } = getCurrentWeekRange();
+            const mondayStr = monday.toISOString().split('T')[0];
+            const sundayStr = sunday.toISOString().split('T')[0];
+            document.getElementById('week-range-display').innerText = `${mondayStr} ~ ${sundayStr}`;
+
+            const tbody = document.getElementById('weekly-status-list');
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-muted);">계산 중...</td></tr>';
+
+            try {
+                // 모든 회원 정보 가져오기
+                const memberSnap = await getDocs(query(membersCol, orderBy("name")));
+                const members = [];
+                memberSnap.forEach(d => members.push({ id: d.id, ...d.data() }));
+
+                // 이번 주 모든 로그 가져오기
+                const q = query(logsCol, where("date", ">=", mondayStr), where("date", "<=", sundayStr));
+                const logSnap = await getDocs(q);
+                const weekLogs = [];
+                logSnap.forEach(d => weekLogs.push(d.data()));
+
+                tbody.innerHTML = '';
+                
+                members.forEach(m => {
+                    const myLogs = weekLogs.filter(l => l.memberId === m.id);
+                    let weeklyDist = 0;
+                    let weeklySeconds = 0;
+                    myLogs.forEach(l => {
+                        weeklyDist += (l.distance || 0);
+                        const paceMatch = (l.pace || "").match(/(\d+)'(\d+)"/);
+                        if (paceMatch) {
+                            const mm = parseInt(paceMatch[1]);
+                            const ss = parseInt(paceMatch[2]);
+                            weeklySeconds += (mm * 60 + ss) * (l.distance || 0);
+                        }
+                    });
+
+                    const avgPaceSecPerKm = weeklyDist > 0 ? weeklySeconds / weeklyDist : 0;
+                    const avgPaceStr = formatPace(avgPaceSecPerKm);
+                    
+                    // 목표 페이스(초/km) 계산
+                    const targetPaceSec = (m.paceMin || 0) * 60 + (m.paceSec || 0);
+                    
+                    // 달성 상태 판단
+                    const distGoalMet = weeklyDist >= (m.minDistance || 0);
+                    const statusText = distGoalMet ? 
+                        '<span style="background: #dcfce7; color: #166534; padding: 0.25rem 0.6rem; border-radius: 2rem; font-weight: 800; font-size: 0.8rem;">목표달성</span>' : 
+                        '<span style="background: #f1f5f9; color: #64748b; padding: 0.25rem 0.6rem; border-radius: 2rem; font-weight: 800; font-size: 0.8rem;">달리는중</span>';
+
+                    // 페이스 벌금 여부
+                    let paceDisplay = `<span>${avgPaceStr}</span>`;
+                    if (avgPaceSecPerKm > targetPaceSec && targetPaceSec > 0) {
+                        paceDisplay = `<div>${avgPaceStr}</div><div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">페이스벌금</div>`;
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="padding-left: 0.75rem; font-weight: 700; color: var(--text-main);">${m.name}</td>
+                        <td>
+                            <div style="font-weight: 800; font-size: 0.95rem;">${weeklyDist.toFixed(1)} <small style="font-weight: 400; color: #94a3b8;">/ ${m.minDistance || 0} km</small></div>
+                            <div style="width: 100%; height: 4px; background: #e2e8f0; border-radius: 2px; margin-top: 4px; overflow: hidden;">
+                                <div style="width: ${Math.min(100, (weeklyDist / (m.minDistance || 1)) * 100)}%; height: 100%; background: ${distGoalMet ? '#22c55e' : '#6366f1'}; transition: width 0.5s;"></div>
+                            </div>
+                        </td>
+                        <td style="font-weight: 700;">${myLogs.length} <small style="font-weight: 400; color: #94a3b8;">회</small></td>
+                        <td>${paceDisplay}</td>
+                        <td style="padding-right: 0.75rem; text-align: center;">${statusText}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">데이터 로딩 오류</td></tr>';
+            }
+        }
 
         // 2. 회원 상세 통계 팝업 열기
         window.showStats = async (memberId, memberName) => {
