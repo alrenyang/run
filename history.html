@@ -116,7 +116,7 @@
                         <span class="value" id="monthly-dist">0.0k</span>
                     </div>
                     <div class="stat-box">
-                        <span class="label">최근 7일 거리</span>
+                        <span class="label">이번주 총거리</span>
                         <span class="value" id="weekly-dist">0.0k</span>
                     </div>
                 </div>
@@ -264,10 +264,18 @@
                 const q = query(logsCol, where("memberId", "==", memberId));
                 const querySnapshot = await getDocs(q);
                 
-                let monthlyDist = 0; let weeklyDist = 0;
+                let monthlyDist = 0; 
+                let thisWeekDist = 0;
+                
                 const now = new Date();
                 const oneMonthAgo = new Date(); oneMonthAgo.setMonth(now.getMonth() - 1);
-                const oneWeekAgo = new Date(); oneWeekAgo.setDate(now.getDate() - 7);
+                
+                // 이번주 월요일 00:00:00 계산
+                const today = new Date();
+                const day = today.getDay();
+                const diffToMonday = today.getDate() - day + (day === 0 ? -6 : 1);
+                const thisMonday = new Date(new Date(today).setDate(diffToMonday));
+                thisMonday.setHours(0,0,0,0);
                 
                 const logs = [];
                 querySnapshot.forEach((d) => logs.push({ id: d.id, ...d.data() }));
@@ -284,13 +292,13 @@
                 logs.forEach((log) => {
                     const logDate = new Date(log.date);
                     if (logDate >= oneMonthAgo) monthlyDist += (log.distance || 0);
-                    if (logDate >= oneWeekAgo) weeklyDist += (log.distance || 0);
+                    if (logDate >= thisMonday) thisWeekDist += (log.distance || 0);
 
                     // 해당 날짜의 월요일 찾기
                     const d = new Date(log.date);
-                    const day = d.getDay();
-                    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-                    const monday = new Date(new Date(d).setDate(diff));
+                    const lDay = d.getDay();
+                    const lDiff = d.getDate() - lDay + (lDay === 0 ? -6 : 1);
+                    const monday = new Date(new Date(d).setDate(lDiff));
                     monday.setHours(0,0,0,0);
                     const key = monday.toISOString().split('T')[0];
 
@@ -305,7 +313,6 @@
                     groups[key].logs.push(log);
                     groups[key].totalDist += (log.distance || 0);
                     
-                    // 페이스 문자열에서 초 계산 (M'SS")
                     const paceMatch = log.pace.match(/(\d+)'(\d+)"/);
                     if (paceMatch) {
                         const m = parseInt(paceMatch[1]);
@@ -315,7 +322,6 @@
                     }
                 });
 
-                // 정렬된 키 (최근 주차부터)
                 const sortedKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a));
 
                 sortedKeys.forEach((key) => {
@@ -334,6 +340,7 @@
                         </div>
                         <div class="week-logs"></div>
                     `;
+                    // ... (rest of the logs rendering logic)
 
                     const logsList = weekContainer.querySelector('.week-logs');
                     
@@ -369,7 +376,7 @@
                 });
 
                 document.getElementById('monthly-dist').innerText = monthlyDist.toFixed(1) + "k";
-                document.getElementById('weekly-dist').innerText = weeklyDist.toFixed(1) + "k";
+                document.getElementById('weekly-dist').innerText = thisWeekDist.toFixed(1) + "k";
             } catch (e) { console.error(e); }
         };
 
