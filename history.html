@@ -5,6 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>솔라러닝크루 - 회원 기록</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .week-container {
+            margin-bottom: 2rem;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        .week-header {
+            background: #f1f5f9;
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .week-title {
+            font-weight: 800;
+            color: var(--primary-color);
+            font-size: 0.95rem;
+        }
+        .week-summary {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .week-summary b {
+            color: var(--text-main);
+            margin-left: 2px;
+        }
+        .history-item {
+            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 0 !important;
+            border-radius: 0 !important;
+            border-left: none !important;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        .history-list {
+            max-height: 400px; /* Increased height */
+        }
+    </style>
 </head>
 <body>
     <aside>
@@ -233,47 +276,117 @@
                 historyContainer.innerHTML = '';
                 if(logs.length === 0) {
                     historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">아직 기록이 없습니다.</div>';
+                    return;
                 }
 
+                // 주차별 그룹화
+                const groups = {};
                 logs.forEach((log) => {
                     const logDate = new Date(log.date);
                     if (logDate >= oneMonthAgo) monthlyDist += (log.distance || 0);
                     if (logDate >= oneWeekAgo) weeklyDist += (log.distance || 0);
-                    
-                    const weekNum = getWeekNumber(logDate);
-                    const weekClass = weekNum % 2 === 0 ? 'week-even' : 'week-odd';
-                    
-                    const item = document.createElement('div');
-                    item.className = `history-item ${weekClass}`;
-                    item.style.flexDirection = 'column';
-                    item.style.alignItems = 'flex-start';
 
-                    let actionsHtml = '';
-                    if (currentUser.role === 'admin') {
-                        actionsHtml = `
-                            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; width: 100%;">
-                                <button class="btn btn-danger btn-sm" style="flex: 1; min-height: 48px; font-size: 1rem;" onclick="window.deleteSpecificLog('${log.id}', '${memberId}')">삭제</button>
-                            </div>
-                        `;
+                    // 해당 날짜의 월요일 찾기
+                    const d = new Date(log.date);
+                    const day = d.getDay();
+                    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                    const monday = new Date(new Date(d).setDate(diff));
+                    monday.setHours(0,0,0,0);
+                    const key = monday.toISOString().split('T')[0];
+
+                    if (!groups[key]) {
+                        groups[key] = {
+                            monday: monday,
+                            logs: [],
+                            totalDist: 0,
+                            totalSeconds: 0
+                        };
                     }
+                    groups[key].logs.push(log);
+                    groups[key].totalDist += (log.distance || 0);
+                    
+                    // 페이스 문자열에서 초 계산 (M'SS")
+                    const paceMatch = log.pace.match(/(\d+)'(\d+)"/);
+                    if (paceMatch) {
+                        const m = parseInt(paceMatch[1]);
+                        const s = parseInt(paceMatch[2]);
+                        const secondsPerKm = m * 60 + s;
+                        groups[key].totalSeconds += secondsPerKm * (log.distance || 0);
+                    }
+                });
 
-                    item.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                            <div class="date" style="font-size: 1rem;">${log.date} <small style="color:#64748b;">[${log.location || '실외'}]</small></div>
-                            <div class="metrics" style="text-align: right;">
-                                <span class="dist" style="display:block; font-size: 1.1rem; font-weight: 800;">${log.distance}km</span>
-                                <div class="pace" style="font-size: 0.85rem;">${log.pace}</div>
-                            </div>
+                // 정렬된 키 (최근 주차부터)
+                const sortedKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
+                sortedKeys.forEach((key) => {
+                    const group = groups[key];
+                    const weekLabel = getWeekOfMonthLabel(group.monday);
+                    const avgPaceSeconds = group.totalDist > 0 ? group.totalSeconds / group.totalDist : 0;
+                    const avgPaceStr = formatPace(avgPaceSeconds);
+
+                    const weekContainer = document.createElement('div');
+                    weekContainer.className = 'week-container';
+                    
+                    weekContainer.innerHTML = `
+                        <div class="week-header">
+                            <span class="week-title">${weekLabel}</span>
+                            <span class="week-summary">합계: <b>${group.totalDist.toFixed(1)}km</b> | 평단: <b>${avgPaceStr}</b></span>
                         </div>
-                        ${actionsHtml}
+                        <div class="week-logs"></div>
                     `;
-                    historyContainer.appendChild(item);
+
+                    const logsList = weekContainer.querySelector('.week-logs');
+                    
+                    group.logs.forEach((log) => {
+                        const item = document.createElement('div');
+                        item.className = `history-item`;
+                        item.style.flexDirection = 'column';
+                        item.style.alignItems = 'flex-start';
+
+                        let actionsHtml = '';
+                        if (currentUser.role === 'admin') {
+                            actionsHtml = `
+                                <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; width: 100%;">
+                                    <button class="btn btn-danger btn-sm" style="flex: 1; min-height: 40px; font-size: 0.9rem; padding: 0;" onclick="window.deleteSpecificLog('${log.id}', '${memberId}')">삭제</button>
+                                </div>
+                            `;
+                        }
+
+                        item.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; padding: 0.75rem 1rem;">
+                                <div class="date" style="font-size: 0.95rem;">${log.date} <small style="color:#64748b;">[${log.location || '실외'}]</small></div>
+                                <div class="metrics" style="text-align: right;">
+                                    <span class="dist" style="display:block; font-size: 1rem; font-weight: 800;">${log.distance}km</span>
+                                    <div class="pace" style="font-size: 0.8rem;">${log.pace}</div>
+                                </div>
+                            </div>
+                            ${actionsHtml ? `<div style="padding: 0 1rem 0.75rem 1rem;">${actionsHtml}</div>` : ''}
+                        `;
+                        logsList.appendChild(item);
+                    });
+
+                    historyContainer.appendChild(weekContainer);
                 });
 
                 document.getElementById('monthly-dist').innerText = monthlyDist.toFixed(1) + "k";
                 document.getElementById('weekly-dist').innerText = weeklyDist.toFixed(1) + "k";
             } catch (e) { console.error(e); }
         };
+
+        function getWeekOfMonthLabel(monday) {
+            const m = monday.getMonth() + 1;
+            const weekNum = Math.floor((monday.getDate() - 1) / 7) + 1;
+            return `${m}월 ${weekNum}주차`;
+        }
+
+        function formatPace(secondsPerKm) {
+            if (!secondsPerKm || isNaN(secondsPerKm)) return "0'00\"";
+            const m = Math.floor(secondsPerKm / 60);
+            const s = Math.round(secondsPerKm % 60);
+            const finalM = s === 60 ? m + 1 : m;
+            const finalS = s === 60 ? 0 : s;
+            return `${finalM}'${String(finalS).padStart(2, '0')}"`;
+        }
 
         // 3. 개별 기록 수정 팝업 제어
         window.openSpecificEditModal = (logId, memberId, date, distance, pace, location) => {
@@ -333,22 +446,43 @@
         async function recalculateMemberStats(memberId) {
             const q = query(logsCol, where("memberId", "==", memberId));
             const snap = await getDocs(q);
-            let d = 0; let c = 0;
-            snap.forEach(l => { d += (l.data().distance || 0); c += 1; });
-            await updateDoc(doc(db, "members", memberId), { distance: Number(d.toFixed(1)), count: c });
+            
+            let totalDist = 0; 
+            let totalSeconds = 0;
+            let count = 0;
+            
+            snap.forEach(l => {
+                const data = l.data();
+                const dist = data.distance || 0;
+                totalDist += dist;
+                count += 1;
+                
+                // 페이스 문자열(M'SS")에서 초 계산
+                const paceMatch = (data.pace || "").match(/(\d+)'(\d+)"/);
+                if (paceMatch) {
+                    const m = parseInt(paceMatch[1]);
+                    const s = parseInt(paceMatch[2]);
+                    // 거리 * 초/km = 해당 활동의 총 소요 시간(초)
+                    totalSeconds += (m * 60 + s) * dist;
+                }
+            });
+            
+            const avgPaceSeconds = totalDist > 0 ? totalSeconds / totalDist : 0;
+            const avgPaceStr = formatPace(avgPaceSeconds);
+            const totalTimeMinutes = totalSeconds / 60;
+
+            await updateDoc(doc(db, "members", memberId), { 
+                distance: Number(totalDist.toFixed(1)), 
+                count: count,
+                totalTime: Number(totalTimeMinutes.toFixed(1)),
+                pace: avgPaceStr
+            });
         }
 
         window.closeStatsModal = () => {
             const overlay = document.getElementById('stats-modal-overlay');
             overlay.classList.remove('active');
             setTimeout(() => { overlay.style.display = 'none'; }, 300);
-        };
-
-        function getWeekNumber(d) {
-            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
         }
 
         // 배경 클릭 시 닫기 (이중 팝업 대응)

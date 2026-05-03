@@ -346,14 +346,25 @@
         };
 
         window.deleteMember = async (id, name) => {
-            if(!confirm(`'${name}' 회원을 삭제하시겠습니까? 관련 활동 기록도 모두 삭제됩니다.`)) return;
+            if(!confirm(`'${name}' 회원을 삭제하시겠습니까? 관련 앱 계정과 활동 기록도 모두 삭제됩니다.`)) return;
             try {
+                // 1. 활동 기록 삭제
                 const q = query(collection(db, "activity_logs"), where("memberId", "==", id));
                 const snap = await getDocs(q);
-                const batch = []; snap.forEach(l => batch.push(deleteDoc(doc(db, "activity_logs", l.id))));
+                const batch = []; 
+                snap.forEach(l => batch.push(deleteDoc(doc(db, "activity_logs", l.id))));
                 await Promise.all(batch);
+
+                // 2. 앱 계정 삭제 (이름이 일치하는 계정)
+                const uq = query(usersCol, where("name", "==", name));
+                const usnap = await getDocs(uq);
+                const ubatch = [];
+                usnap.forEach(u => ubatch.push(deleteDoc(doc(db, "app_users", u.id))));
+                await Promise.all(ubatch);
+
+                // 3. 회원 정보 삭제
                 await deleteDoc(doc(db, "members", id));
-                alert('삭제되었습니다.');
+                alert('회원 및 관련 데이터가 모두 삭제되었습니다.');
             } catch (e) { alert("삭제 오류: " + e.message); }
         };
 
@@ -401,10 +412,28 @@
 
         window.deleteAccount = async (id, name) => {
             if(name === currentUser.name) return alert('본인 계정은 삭제할 수 없습니다.');
-            if(!confirm(`'${name}' 계정을 삭제하시겠습니까? 이 사용자는 더 이상 로그인할 수 없게 됩니다.`)) return;
+            if(!confirm(`'${name}' 계정을 삭제하시겠습니까? 관련된 회원 목표 정보와 모든 활동 기록도 함께 삭제됩니다.`)) return;
             try {
+                // 1. 회원 정보 찾기 및 삭제 (이름 기준)
+                const mq = query(membersCol, where("name", "==", name));
+                const msnap = await getDocs(mq);
+                
+                for (const mdoc of msnap.docs) {
+                    const memberId = mdoc.id;
+                    // 해당 회원의 활동 기록 삭제
+                    const lq = query(collection(db, "activity_logs"), where("memberId", "==", memberId));
+                    const lsnap = await getDocs(lq);
+                    const lbatch = [];
+                    lsnap.forEach(l => lbatch.push(deleteDoc(doc(db, "activity_logs", l.id))));
+                    await Promise.all(lbatch);
+                    
+                    // 회원 문서 삭제
+                    await deleteDoc(doc(db, "members", memberId));
+                }
+
+                // 2. 앱 계정 삭제
                 await deleteDoc(doc(db, "app_users", id));
-                alert('계정이 삭제되었습니다.');
+                alert('계정과 관련된 모든 데이터가 삭제되었습니다.');
             } catch (e) { alert("삭제 오류: " + e.message); }
         };
 
