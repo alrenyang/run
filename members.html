@@ -72,9 +72,9 @@
                         <thead>
                             <tr>
                                 <th style="padding-left: 0.75rem; width: 40px;">#</th>
-                                <th style="width: 80px;">이름</th>
-                                <th style="width: 80px;">최소거리</th>
-                                <th style="width: 70px;">최소시간</th>
+                                <th style="width: 80px;">회원이름</th>
+                                <th style="width: 100px;">주간목표거리</th>
+                                <th style="width: 100px;">평균페이스</th>
                                 <th style="width: 60px;">주간횟수</th>
                                 <th style="padding-right: 0.75rem; text-align: right;">관리</th>
                             </tr>
@@ -125,24 +125,29 @@
                 <form id="member-form" onsubmit="event.preventDefault();">
                     <input type="hidden" id="member-doc-id">
                     <div class="form-group">
-                        <label for="name">회원 이름</label>
+                        <label for="name">회원이름</label>
                         <select id="name" class="form-control">
                             <option value="">회원을 선택하세요</option>
                         </select>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
-                            <label for="minDistance">최소거리 (km)</label>
-                            <input type="number" id="minDistance" class="form-control" placeholder="0.0" step="0.1">
+                            <label for="minDistance">주간목표거리 (km)</label>
+                            <input type="number" id="minDistance" class="form-control" placeholder="0.0" step="0.1" inputmode="decimal">
                         </div>
                         <div class="form-group">
-                            <label for="minTime">최소시간 (분)</label>
-                            <input type="number" id="minTime" class="form-control" placeholder="0">
+                            <label>평균페이스 (분/초)</label>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <input type="number" id="paceMin" class="form-control" placeholder="분" min="0" inputmode="numeric" style="padding: 0.75rem 0.5rem; text-align: center;">
+                                <span style="font-weight: bold; color: var(--text-muted);">'</span>
+                                <input type="number" id="paceSec" class="form-control" placeholder="초" min="0" max="59" inputmode="numeric" style="padding: 0.75rem 0.5rem; text-align: center;">
+                                <span style="font-weight: bold; color: var(--text-muted);">"</span>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="weeklyCount">주간러닝횟수 (회)</label>
-                        <input type="number" id="weeklyCount" class="form-control" placeholder="0">
+                        <label for="weeklyCount">주간횟수 (회)</label>
+                        <input type="number" id="weeklyCount" class="form-control" placeholder="0" inputmode="numeric">
                     </div>
                 </form>
             </div>
@@ -253,11 +258,11 @@
                     <td style="padding-left: 0.75rem; color: var(--text-muted); font-size: 0.75rem;">${index++}</td>
                     <td style="font-weight: 600; color: var(--text-main);">${member.name}</td>
                     <td><span style="font-weight: 700;">${member.minDistance || 0}</span> km</td>
-                    <td>${member.minTime || 0} 분</td>
+                    <td>${member.paceMin || 0}'${String(member.paceSec || 0).padStart(2, '0')}"</td>
                     <td><span style="background: #f3f4f6; padding: 0.15rem 0.35rem; border-radius: 0.4rem; font-family: monospace; font-size: 0.8rem;">${member.weeklyCount || 0} 회</span></td>
                     <td style="padding-right: 0.75rem; text-align: right;">
                         <div style="display: flex; gap: 0.3rem; justify-content: flex-end;">
-                            <button class="btn btn-outline btn-sm" onclick="window.editMember('${doc.id}', '${member.name}', ${member.minDistance || 0}, ${member.minTime || 0}, ${member.weeklyCount || 0})">수정</button>
+                            <button class="btn btn-outline btn-sm" onclick="window.editMember('${doc.id}', '${member.name}', ${member.minDistance || 0}, ${member.paceMin || 0}, ${member.paceSec || 0}, ${member.weeklyCount || 0})">수정</button>
                             <button class="btn btn-danger btn-sm" onclick="window.deleteMember('${doc.id}', '${member.name}')">삭제</button>
                         </div>
                     </td>
@@ -333,12 +338,13 @@
             const id = document.getElementById('member-doc-id').value;
             const name = document.getElementById('name').value;
             const minDistance = parseFloat(document.getElementById('minDistance').value) || 0;
-            const minTime = parseInt(document.getElementById('minTime').value) || 0;
+            const paceMin = parseInt(document.getElementById('paceMin').value) || 0;
+            const paceSec = parseInt(document.getElementById('paceSec').value) || 0;
             const weeklyCount = parseInt(document.getElementById('weeklyCount').value) || 0;
 
             if(!name) return alert('이름을 입력해 주세요.');
             try {
-                const data = { name, minDistance, minTime, weeklyCount };
+                const data = { name, minDistance, paceMin, paceSec, weeklyCount };
                 if(id) await updateDoc(doc(db, "members", id), data);
                 else await addDoc(membersCol, data);
                 window.closeModal();
@@ -368,12 +374,13 @@
             } catch (e) { alert("삭제 오류: " + e.message); }
         };
 
-        window.editMember = (id, name, minDistance, minTime, weeklyCount) => {
+        window.editMember = (id, name, minDistance, paceMin, paceSec, weeklyCount) => {
             document.getElementById('modal-title').innerText = '회원 정보 수정';
             document.getElementById('member-doc-id').value = id;
             document.getElementById('name').value = name;
             document.getElementById('minDistance').value = minDistance;
-            document.getElementById('minTime').value = minTime;
+            document.getElementById('paceMin').value = paceMin;
+            document.getElementById('paceSec').value = paceSec;
             document.getElementById('weeklyCount').value = weeklyCount;
             const overlay = document.getElementById('modal-overlay');
             overlay.style.display = 'flex';
