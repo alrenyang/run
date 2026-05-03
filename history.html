@@ -289,7 +289,7 @@
         }
 
         // 1. 실시간 누계 데이터 렌더링
-        onSnapshot(query(membersCol, orderBy("name")), (snapshot) => {
+        onSnapshot(query(membersCol, orderBy("distance", "desc")), (snapshot) => {
             const tbody = document.getElementById('history-list');
             const thead = document.querySelector('#cumulative-tab thead tr');
             tbody.innerHTML = '';
