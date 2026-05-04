@@ -433,6 +433,9 @@
         // 2. 회원 상세 통계 팝업 열기
         window.showStats = async (memberId, memberName) => {
             document.getElementById('stats-member-name').innerText = memberName;
+            document.getElementById('monthly-dist').innerText = "0.0k";
+            document.getElementById('weekly-dist').innerText = "0.0k";
+            
             const historyContainer = document.getElementById('history-items');
             historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">활동 내역 로딩 중...</div>';
             
@@ -448,7 +451,9 @@
                 let thisWeekDist = 0;
                 
                 const now = new Date();
-                const oneMonthAgo = new Date(); oneMonthAgo.setMonth(now.getMonth() - 1);
+                // 이번 달 1일 00:00:00 계산
+                const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                thisMonthStart.setHours(0, 0, 0, 0);
                 
                 // 이번주 월요일 00:00:00 계산
                 const today = new Date();
@@ -464,6 +469,7 @@
                 historyContainer.innerHTML = '';
                 if(logs.length === 0) {
                     historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">아직 기록이 없습니다.</div>';
+                    // monthly-dist, weekly-dist는 이미 위에서 0.0k로 초기화됨
                     return;
                 }
 
@@ -471,7 +477,7 @@
                 const groups = {};
                 logs.forEach((log) => {
                     const logDate = new Date(log.date);
-                    if (logDate >= oneMonthAgo) monthlyDist += (log.distance || 0);
+                    if (logDate >= thisMonthStart) monthlyDist += (log.distance || 0);
                     if (logDate >= thisMonday) thisWeekDist += (log.distance || 0);
 
                     // 해당 날짜의 월요일 찾기
