@@ -278,12 +278,27 @@
                         }
                     }
 
+                    // 누적 평균 페이스 계산
+                    const updatedDist = Number(((current.distance || 0) + newDist).toFixed(1));
+                    const updatedTime = Number(((current.totalTime || 0) + additionalMinutes).toFixed(1));
+                    
+                    let avgPaceStr = "0'00\"";
+                    if (updatedDist > 0) {
+                        const totalSeconds = updatedTime * 60;
+                        const secondsPerKm = totalSeconds / updatedDist;
+                        const paceMin = Math.floor(secondsPerKm / 60);
+                        const paceSec = Math.round(secondsPerKm % 60);
+                        const finalMin = paceSec === 60 ? paceMin + 1 : paceMin;
+                        const finalSec = paceSec === 60 ? 0 : paceSec;
+                        avgPaceStr = `${finalMin}'${String(finalSec).padStart(2, '0')}"`;
+                    }
+
                     // 기존 값에 더하기 (누적 업데이트)
                     await updateDoc(memberRef, {
-                        distance: Number(((current.distance || 0) + newDist).toFixed(1)),
+                        distance: updatedDist,
                         count: (current.count || 0) + 1,
-                        totalTime: Number(((current.totalTime || 0) + additionalMinutes).toFixed(1)),
-                        pace: newPace,
+                        totalTime: updatedTime,
+                        pace: avgPaceStr,
                         cumulativePenalty: (current.cumulativePenalty || 0) + (isPenalty ? 1 : 0)
                     });
 
