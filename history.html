@@ -13,6 +13,19 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
+        /* 회비 현황 전용 스타일 */
+        .fee-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+        @media (max-width: 480px) {
+            .fee-stats-grid {
+                grid-template-columns: repeat(3, 1fr); /* 유지하되 폰트 크기 조절로 대응 */
+                gap: 0.5rem;
+            }
+        }
+
         .week-container {
             margin-bottom: 2rem;
             background: #fff;
@@ -87,6 +100,7 @@
         <div class="tabs">
             <div class="tab-item active" onclick="window.switchTab('cumulative-tab', this)">📊 누적 데이터</div>
             <div class="tab-item" onclick="window.switchTab('weekly-status-tab', this)">🔥 주간달성현황</div>
+            <div class="tab-item" onclick="window.switchTab('fee-status-tab', this)">💰 회비현황</div>
         </div>
 
         <!-- 탭 1: 누적 데이터 -->
@@ -137,6 +151,49 @@
                             <tr><td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-muted);">데이터를 불러오는 중...</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 탭 3: 회비현황 -->
+        <div id="fee-status-tab" class="tab-content">
+            <!-- 총 잔액 카드 -->
+            <div class="card" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; border: none; padding: 1.75rem; margin-bottom: 1rem; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem; font-weight: 500;">현재 크루 운영 잔액</div>
+                        <div id="total-fee-sum-large" style="font-size: 2.25rem; font-weight: 900; letter-spacing: -0.025em;">0원</div>
+                    </div>
+                    <div style="font-size: 3rem; opacity: 0.25;">💳</div>
+                </div>
+            </div>
+            
+            <!-- 카테고리별 요약 (모바일 대응 그리드) -->
+            <div class="stats-grid fee-stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stat-box" style="background: #f5f3ff; border: 1px solid #ddd6fe; padding: 1rem 0.5rem;">
+                    <span class="label" style="color: #6366f1; font-size: 0.75rem;">크루 가입비</span>
+                    <span class="value" id="total-join-fee" style="color: #4f46e5; font-size: 1.05rem;">0원</span>
+                </div>
+                <div class="stat-box" style="background: #fff1f2; border: 1px solid #fecdd3; padding: 1rem 0.5rem;">
+                    <span class="label" style="color: #f43f5e; font-size: 0.75rem;">누적 벌금</span>
+                    <span class="value" id="total-penalty-fee" style="color: #e11d48; font-size: 1.05rem;">0원</span>
+                </div>
+                <div class="stat-box" style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 1rem 0.5rem;">
+                    <span class="label" style="color: #10b981; font-size: 0.75rem;">찬조 및 기타</span>
+                    <span class="value" id="total-etc-fee" style="color: #059669; font-size: 1.05rem;">0원</span>
+                </div>
+            </div>
+
+            <!-- 상세 내역 리스트 -->
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <div style="padding: 1.25rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: #fff;">
+                    <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-main);">회비 입출 내역 상세</h3>
+                    <button id="admin-fee-add-btn" class="btn btn-primary btn-sm" style="display: none; min-height: 38px; border-radius: 0.75rem;" onclick="window.openFeeModal()">내역 추가</button>
+                </div>
+                <div id="fee-history-list" style="background: #fff;">
+                    <div style="text-align: center; padding: 4rem 2rem; color: var(--text-muted); font-size: 0.9rem;">
+                        내역을 불러오는 중입니다...
+                    </div>
                 </div>
             </div>
         </div>
@@ -221,6 +278,45 @@
         </div>
     </div>
 
+    <!-- 3. 회비 내역 추가/수정 팝업 -->
+    <div class="modal-overlay" id="fee-modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="fee-modal-title">회비 내역 추가</h3>
+                <button onclick="window.closeFeeModal()" style="border:none; background:none; font-size: 1.75rem; cursor:pointer; color: var(--text-muted);">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="fee-form" onsubmit="event.preventDefault();">
+                    <input type="hidden" id="fee-id">
+                    <div class="form-group">
+                        <label>카테고리</label>
+                        <select id="fee-category" class="form-control">
+                            <option value="join">총 크루 가입 비용</option>
+                            <option value="penalty">벌금</option>
+                            <option value="etc">찬조 및 기타</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>금액 (원)</label>
+                        <input type="number" id="fee-amount" class="form-control" placeholder="0" inputmode="numeric">
+                    </div>
+                    <div class="form-group">
+                        <label>날짜</label>
+                        <input type="date" id="fee-date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>설명 (선택사항)</label>
+                        <input type="text" id="fee-description" class="form-control" placeholder="내용을 입력하세요">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 0.75rem;">
+                <button class="btn btn-outline" onclick="window.closeFeeModal()">취소</button>
+                <button class="btn btn-primary" onclick="window.saveFeeRecord()">저장하기</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDK -->
     <script type="module">
         // [보안] 로그인 및 메뉴 권한 체크
@@ -230,6 +326,10 @@
             if (user.role === 'admin') {
                 const navMembers = document.getElementById('nav-members');
                 if (navMembers) navMembers.style.display = 'flex';
+                
+                // 회비현황 추가 버튼 표시
+                const addBtn = document.getElementById('admin-fee-add-btn');
+                if (addBtn) addBtn.style.display = 'block';
             }
             return user;
         };
@@ -237,7 +337,7 @@
         if (!currentUser) throw new Error("Unauthorized");
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs, getDoc } 
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs, getDoc, addDoc, serverTimestamp } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -253,6 +353,7 @@
         const db = getFirestore(app);
         const membersCol = collection(db, "members");
         const logsCol = collection(db, "activity_logs");
+        const feesCol = collection(db, "membership_fees");
 
         // 탭 전환 함수
         window.switchTab = (tabId, el) => {
@@ -262,6 +363,159 @@
             el.classList.add('active');
             if (tabId === 'weekly-status-tab') {
                 renderWeeklyStatus();
+            } else if (tabId === 'fee-status-tab') {
+                renderFeeStatus();
+            }
+        };
+
+        // --- [회비 현황] 로직 ---
+        
+        // 회비 내역 렌더링
+        let feeUnsubscribe = null;
+        function renderFeeStatus() {
+            if (feeUnsubscribe) feeUnsubscribe();
+            
+            feeUnsubscribe = onSnapshot(query(feesCol, orderBy("date", "desc")), (snapshot) => {
+                const listContainer = document.getElementById('fee-history-list');
+                listContainer.innerHTML = '';
+                
+                let totalJoin = 0;
+                let totalPenalty = 0;
+                let totalEtc = 0;
+                
+                if (snapshot.empty) {
+                    listContainer.innerHTML = '<div style="text-align: center; padding: 4rem 2rem; color: var(--text-muted); font-size: 0.9rem;">등록된 회비 내역이 없습니다.</div>';
+                }
+
+                snapshot.forEach((docSnap) => {
+                    const fee = docSnap.data();
+                    const amount = fee.amount || 0;
+                    
+                    if (fee.category === 'join') totalJoin += amount;
+                    else if (fee.category === 'penalty') totalPenalty += amount;
+                    else if (fee.category === 'etc') totalEtc += amount;
+                    
+                    const item = document.createElement('div');
+                    item.style.padding = '1.25rem 1rem';
+                    item.style.borderBottom = '1px solid #f1f5f9';
+                    item.style.display = 'flex';
+                    item.style.alignItems = 'center';
+                    item.style.gap = '1rem';
+
+                    let adminBtns = '';
+                    if (currentUser.role === 'admin') {
+                        adminBtns = `
+                            <div style="display: flex; gap: 0.4rem; margin-top: 0.5rem; justify-content: flex-end;">
+                                <button class="btn btn-sm" style="min-height:28px; padding:0 0.6rem; font-size:0.75rem; border-radius:0.4rem; background:#f1f5f9; color:#475569; border:none;" onclick="window.openFeeModal('${docSnap.id}', '${fee.category}', ${amount}, '${fee.date}', '${fee.description || ''}')">수정</button>
+                                <button class="btn btn-danger btn-sm" style="min-height:28px; padding:0 0.6rem; font-size:0.75rem; border-radius:0.4rem; background:#fff1f2; color:#e11d48; border:none;" onclick="window.deleteFeeRecord('${docSnap.id}')">삭제</button>
+                            </div>
+                        `;
+                    }
+
+                    item.innerHTML = `
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: ${getCategoryColor(fee.category)}15; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
+                            ${getCategoryIcon(fee.category)}
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
+                                <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${getCategoryName(fee.category)}</div>
+                                <div style="font-weight: 800; font-size: 1rem; color: var(--text-main); text-align: right; margin-left: 0.5rem;">${amount.toLocaleString()}원</div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
+                                    <div>${fee.date}</div>
+                                    <div style="color: #64748b;">${fee.description || ''}</div>
+                                </div>
+                                ${adminBtns}
+                            </div>
+                        </div>
+                    `;
+                    listContainer.appendChild(item);
+                });
+
+                const totalSum = totalJoin + totalPenalty + totalEtc;
+                document.getElementById('total-join-fee').innerText = totalJoin.toLocaleString() + '원';
+                document.getElementById('total-penalty-fee').innerText = totalPenalty.toLocaleString() + '원';
+                document.getElementById('total-etc-fee').innerText = totalEtc.toLocaleString() + '원';
+                document.getElementById('total-fee-sum-large').innerText = totalSum.toLocaleString() + '원';
+            });
+        }
+
+        function getCategoryIcon(cat) {
+            if (cat === 'join') return '👋';
+            if (cat === 'penalty') return '🚨';
+            if (cat === 'etc') return '🎁';
+            return '💰';
+        }
+
+        function getCategoryName(cat) {
+            if (cat === 'join') return '크루 가입비';
+            if (cat === 'penalty') return '활동 벌금';
+            if (cat === 'etc') return '찬조 및 기타';
+            return '기타';
+        }
+
+        function getCategoryColor(cat) {
+            if (cat === 'join') return '#6366f1';
+            if (cat === 'penalty') return '#ef4444';
+            if (cat === 'etc') return '#10b981';
+            return '#94a3b8';
+        }
+
+        window.openFeeModal = (id = '', cat = 'join', amt = '', date = '', desc = '') => {
+            document.getElementById('fee-id').value = id;
+            document.getElementById('fee-category').value = cat;
+            document.getElementById('fee-amount').value = amt;
+            document.getElementById('fee-date').value = date || new Date().toISOString().split('T')[0];
+            document.getElementById('fee-description').value = desc;
+            
+            document.getElementById('fee-modal-title').innerText = id ? '회비 내역 수정' : '회비 내역 추가';
+            
+            const overlay = document.getElementById('fee-modal-overlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
+        };
+
+        window.closeFeeModal = () => {
+            const overlay = document.getElementById('fee-modal-overlay');
+            overlay.classList.remove('active');
+            setTimeout(() => { 
+                overlay.style.display = 'none'; 
+                document.getElementById('fee-form').reset();
+            }, 300);
+        };
+
+        window.saveFeeRecord = async () => {
+            const id = document.getElementById('fee-id').value;
+            const category = document.getElementById('fee-category').value;
+            const amount = parseInt(document.getElementById('fee-amount').value) || 0;
+            const date = document.getElementById('fee-date').value;
+            const description = document.getElementById('fee-description').value;
+
+            if (!amount || !date) return alert('금액과 날짜를 입력해 주세요.');
+
+            try {
+                if (id) {
+                    await updateDoc(doc(db, "membership_fees", id), { category, amount, date, description, updatedAt: serverTimestamp() });
+                } else {
+                    await addDoc(feesCol, { category, amount, date, description, createdAt: serverTimestamp() });
+                }
+                alert('저장되었습니다.');
+                window.closeFeeModal();
+            } catch (e) {
+                console.error(e);
+                alert('저장 중 오류 발생');
+            }
+        };
+
+        window.deleteFeeRecord = async (id) => {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            try {
+                await deleteDoc(doc(db, "membership_fees", id));
+                alert('삭제되었습니다.');
+            } catch (e) {
+                console.error(e);
+                alert('삭제 중 오류 발생');
             }
         };
 
