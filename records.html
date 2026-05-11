@@ -381,11 +381,6 @@
             const avgPaceSeconds = totalDist > 0 ? totalSeconds / totalDist : 0;
             const avgPaceStr = formatPace(avgPaceSeconds);
 
-            // [사용자 요청] 특정 회원은 벌금을 0으로 초기화/예외 처리
-            if (mData.name === '양영관' || mData.name === '이보람') {
-                cumulativePenalty = 0;
-            }
-
             await updateDoc(memberRef, { 
                 distance: Number(totalDist.toFixed(1)), 
                 count: count,

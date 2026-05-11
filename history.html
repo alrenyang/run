@@ -625,6 +625,7 @@
                     const myLogs = weekLogs.filter(l => l.memberId === m.id);
                     let weeklyDist = 0;
                     let weeklySeconds = 0;
+                    let pacePenaltyCount = 0;
                     
                     // 목표 페이스(초/km) 계산
                     const targetPaceSec = (m.paceMin || 0) * 60 + (m.paceSec || 0);
@@ -636,6 +637,12 @@
                             const mm = parseInt(paceMatch[1]);
                             const ss = parseInt(paceMatch[2]);
                             const currentLogPaceSec = mm * 60 + ss;
+                            
+                            // 개별 기록 페이스 벌금 체크
+                            if (targetPaceSec > 0 && currentLogPaceSec > targetPaceSec) {
+                                pacePenaltyCount++;
+                            }
+                            
                             weeklySeconds += currentLogPaceSec * (l.distance || 0);
                         }
                     });
@@ -648,18 +655,19 @@
                     const paceGoalMet = targetPaceSec === 0 || (avgPaceSecPerKm > 0 && avgPaceSecPerKm <= targetPaceSec);
                     const countGoalMet = myLogs.length >= (m.weeklyCount || 0);
 
-                    // 벌금 사유 메시지 생성
-                    let penaltyMessages = [];
-                    if (!distGoalMet) penaltyMessages.push('<div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">주간목표거리미달</div>');
-                    if (!paceGoalMet && avgPaceSecPerKm > 0) penaltyMessages.push('<div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">평균페이스미달</div>');
-                    if (!countGoalMet) penaltyMessages.push('<div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">주간횟수미달</div>');
+                    // 이번 주 발생 벌금 합계 (개별 페이스 벌금 + 거리 미달 벌금)
+                    const distPenaltyCount = distGoalMet ? 0 : 1;
+                    const totalWeeklyPenalties = pacePenaltyCount + distPenaltyCount;
+
+                    // 상태 메시지 생성 (상태 컬럼으로 이동)
+                    let statusMessages = [];
+                    if (!distGoalMet) statusMessages.push('<div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">주간거리미달</div>');
+                    if (!paceGoalMet && avgPaceSecPerKm > 0) statusMessages.push('<div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">평균페이스미달</div>');
+                    if (!countGoalMet) statusMessages.push('<div style="color: #64748b; font-size: 0.7rem; font-weight: 500;">주간횟수미달</div>');
                     
-                    const penaltyDisplay = penaltyMessages.length > 0 ? penaltyMessages.join('') : '<div style="color: #22c55e; font-size: 0.7rem; font-weight: 700;">모두달성</div>';
+                    const statusMessagesDisplay = statusMessages.length > 0 ? statusMessages.join('') : '<div style="color: #22c55e; font-size: 0.7rem; font-weight: 700;">모두달성</div>';
 
-                    // 주간 벌금 횟수: 하나라도 미달 시 1회
-                    const penaltyCount = (distGoalMet && paceGoalMet && countGoalMet) ? 0 : 1;
-
-                    const statusText = distGoalMet ? 
+                    const statusBadge = distGoalMet ? 
                         '<span style="background: #dcfce7; color: #166534; padding: 0.25rem 0.6rem; border-radius: 2rem; font-weight: 800; font-size: 0.8rem;">목표달성</span>' : 
                         '<span style="background: #f1f5f9; color: #64748b; padding: 0.25rem 0.6rem; border-radius: 2rem; font-weight: 800; font-size: 0.8rem;">달리는중</span>';
 
@@ -677,8 +685,11 @@
                         </td>
                         <td style="font-weight: 700;">${myLogs.length} <small style="font-weight: 400; color: #94a3b8;">/ ${m.weeklyCount || 0}회</small></td>
                         <td>${paceDisplay}</td>
-                        <td style="text-align: center;">${penaltyDisplay}</td>
-                        <td style="padding-right: 0.75rem; text-align: center;">${statusText}</td>
+                        <td style="text-align: center; font-weight: 800; color: ${totalWeeklyPenalties > 0 ? '#ef4444' : 'var(--text-main)'};">${totalWeeklyPenalties} 회</td>
+                        <td style="padding-right: 0.75rem; text-align: center;">
+                            <div style="margin-bottom: 4px;">${statusBadge}</div>
+                            ${statusMessagesDisplay}
+                        </td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -1006,11 +1017,6 @@
             const avgPaceSeconds = totalDist > 0 ? totalSeconds / totalDist : 0;
             const avgPaceStr = formatPace(avgPaceSeconds);
             const totalTimeMinutes = totalSeconds / 60;
-
-            // [사용자 요청] 특정 회원은 벌금을 0으로 초기화/예외 처리
-            if (mData.name === '양영관' || mData.name === '이보람') {
-                cumulativePenalty = 0;
-            }
 
             await updateDoc(doc(db, "members", memberId), { 
                 distance: Number(totalDist.toFixed(1)), 

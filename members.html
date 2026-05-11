@@ -213,7 +213,7 @@
         if (!currentUser) throw new Error("Unauthorized");
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } 
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs, getDoc } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -348,6 +348,8 @@
                     // 수정 시에는 기존 기록 데이터 유지
                     const data = { name, minDistance, paceMin, paceSec, weeklyCount };
                     await updateDoc(doc(db, "members", id), data);
+                    // 목표 변경 시 벌금 재계산
+                    await recalculateMemberStats(id);
                 } else {
                     // 신규 등록 시 모든 데이터 필드 초기화 (정렬 오류 방지)
                     const data = { 
@@ -367,6 +369,108 @@
                 window.closeModal();
             } catch (e) { alert("저장 오류: " + e.message); }
         };
+
+        async function recalculateMemberStats(memberId) {
+            const logsQuery = query(collection(db, "activity_logs"), where("memberId", "==", memberId));
+            const snap = await getDocs(logsQuery);
+            
+            const memberRef = doc(db, "members", memberId);
+            const memberDoc = await getDoc(memberRef);
+            if (!memberDoc.exists()) return;
+
+            const mData = memberDoc.data();
+            const targetPaceSec = (mData.paceMin || 0) * 60 + (mData.paceSec || 0);
+            const minDistance = mData.minDistance || 0;
+
+            let totalDist = 0; 
+            let totalSeconds = 0;
+            let count = 0;
+            let cumulativePenalty = 0;
+            
+            const weeklyData = {};
+            let firstLogDate = null;
+
+            snap.forEach(l => {
+                const data = l.data();
+                const dist = data.distance || 0;
+                const logDateStr = data.date;
+                const logDate = new Date(logDateStr + 'T00:00:00');
+                
+                if (!firstLogDate || logDate < firstLogDate) {
+                    firstLogDate = new Date(logDate);
+                }
+
+                const d = new Date(logDate);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                const monday = new Date(d.setDate(diff));
+                monday.setHours(0,0,0,0);
+                const weekKey = monday.toISOString().split('T')[0];
+
+                if (!weeklyData[weekKey]) {
+                    weeklyData[weekKey] = { dist: 0, seconds: 0 };
+                }
+                weeklyData[weekKey].dist += dist;
+
+                const paceMatch = (data.pace || "").match(/(\d+)'(\d+)"/);
+                if (paceMatch) {
+                    const mm = parseInt(paceMatch[1]);
+                    const ss = parseInt(paceMatch[2]);
+                    const currentLogPaceSec = mm * 60 + ss;
+                    if (targetPaceSec > 0 && currentLogPaceSec > targetPaceSec) {
+                        cumulativePenalty++;
+                    }
+                    const logTotalSec = currentLogPaceSec * dist;
+                    weeklyData[weekKey].seconds += logTotalSec;
+                    totalSeconds += logTotalSec;
+                }
+                totalDist += dist;
+                count += 1;
+            });
+
+            if (firstLogDate) {
+                const today = new Date();
+                const tDay = today.getDay();
+                const tDiff = today.getDate() - tDay + (tDay === 0 ? -6 : 1);
+                const currentMonday = new Date(new Date(today).setDate(tDiff));
+                currentMonday.setHours(0,0,0,0);
+
+                const iterDate = new Date(firstLogDate);
+                const iDay = iterDate.getDay();
+                const iDiff = iterDate.getDate() - iDay + (iDay === 0 ? -6 : 1);
+                iterDate.setDate(iDiff);
+                iterDate.setHours(0,0,0,0);
+
+                while (iterDate < currentMonday) {
+                    const weekKey = iterDate.toISOString().split('T')[0];
+                    const w = weeklyData[weekKey] || { dist: 0 };
+                    if (w.dist < minDistance) {
+                        cumulativePenalty++;
+                    }
+                    iterDate.setDate(iterDate.getDate() + 7);
+                }
+            }
+
+            const avgPaceSeconds = totalDist > 0 ? totalSeconds / totalDist : 0;
+            const avgPaceStr = formatPace(avgPaceSeconds);
+
+            await updateDoc(memberRef, { 
+                distance: Number(totalDist.toFixed(1)), 
+                count: count,
+                totalTime: Number((totalSeconds / 60).toFixed(1)),
+                pace: avgPaceStr,
+                cumulativePenalty: cumulativePenalty
+            });
+        }
+
+        function formatPace(secondsPerKm) {
+            if (!secondsPerKm || isNaN(secondsPerKm)) return "0'00\"";
+            const m = Math.floor(secondsPerKm / 60);
+            const s = Math.round(secondsPerKm % 60);
+            const finalM = s === 60 ? m + 1 : m;
+            const finalS = s === 60 ? 0 : s;
+            return `${finalM}'${String(finalS).padStart(2, '0')}"`;
+        }
 
         window.deleteMember = async (id, name) => {
             if(!id || !name) return alert('회원 정보가 올바르지 않습니다.');
