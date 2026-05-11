@@ -625,7 +625,6 @@
                     const myLogs = weekLogs.filter(l => l.memberId === m.id);
                     let weeklyDist = 0;
                     let weeklySeconds = 0;
-                    let penaltyCount = 0;
                     
                     // 목표 페이스(초/km) 계산
                     const targetPaceSec = (m.paceMin || 0) * 60 + (m.paceSec || 0);
@@ -638,11 +637,6 @@
                             const ss = parseInt(paceMatch[2]);
                             const currentLogPaceSec = mm * 60 + ss;
                             weeklySeconds += currentLogPaceSec * (l.distance || 0);
-                            
-                            // 개별 기록의 페이스가 설정된 목표 페이스보다 느릴 경우 벌금 횟수 증가
-                            if (targetPaceSec > 0 && currentLogPaceSec > targetPaceSec) {
-                                penaltyCount++;
-                            }
                         }
                     });
 
@@ -651,16 +645,27 @@
                     
                     // 달성 상태 판단
                     const distGoalMet = weeklyDist >= (m.minDistance || 0);
+                    const paceGoalMet = targetPaceSec === 0 || (avgPaceSecPerKm > 0 && avgPaceSecPerKm <= targetPaceSec);
+                    const countGoalMet = myLogs.length >= (m.weeklyCount || 0);
+
+                    // 벌금 사유 메시지 생성
+                    let penaltyMessages = [];
+                    if (!distGoalMet) penaltyMessages.push('<div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">주간목표거리미달</div>');
+                    if (!paceGoalMet && avgPaceSecPerKm > 0) penaltyMessages.push('<div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">평균페이스미달</div>');
+                    if (!countGoalMet) penaltyMessages.push('<div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">주간횟수미달</div>');
+                    
+                    const penaltyDisplay = penaltyMessages.length > 0 ? penaltyMessages.join('') : '<div style="color: #22c55e; font-size: 0.7rem; font-weight: 700;">모두달성</div>';
+
+                    // 주간 벌금 횟수: 하나라도 미달 시 1회
+                    const penaltyCount = (distGoalMet && paceGoalMet && countGoalMet) ? 0 : 1;
+
                     const statusText = distGoalMet ? 
                         '<span style="background: #dcfce7; color: #166534; padding: 0.25rem 0.6rem; border-radius: 2rem; font-weight: 800; font-size: 0.8rem;">목표달성</span>' : 
                         '<span style="background: #f1f5f9; color: #64748b; padding: 0.25rem 0.6rem; border-radius: 2rem; font-weight: 800; font-size: 0.8rem;">달리는중</span>';
 
-                    // 페이스 벌금 여부 (주간 평균 기준)
+                    // 페이스 표시
                     let paceDisplay = `<span>${avgPaceStr}</span>`;
-                    if (avgPaceSecPerKm > targetPaceSec && targetPaceSec > 0) {
-                        paceDisplay = `<div>${avgPaceStr}</div><div style="color: #ef4444; font-size: 0.7rem; font-weight: 700;">페이스벌금</div>`;
-                    }
-
+                    
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td style="padding-left: 0.75rem; font-weight: 700; color: var(--text-main);">${m.name}</td>
@@ -670,9 +675,9 @@
                                 <div style="width: ${Math.min(100, (weeklyDist / (m.minDistance || 1)) * 100)}%; height: 100%; background: ${distGoalMet ? '#22c55e' : '#6366f1'}; transition: width 0.5s;"></div>
                             </div>
                         </td>
-                        <td style="font-weight: 700;">${myLogs.length} <small style="font-weight: 400; color: #94a3b8;">회</small></td>
+                        <td style="font-weight: 700;">${myLogs.length} <small style="font-weight: 400; color: #94a3b8;">/ ${m.weeklyCount || 0}회</small></td>
                         <td>${paceDisplay}</td>
-                        <td style="text-align: center; font-weight: 800; color: ${penaltyCount > 0 ? '#ef4444' : 'var(--text-main)'};">${penaltyCount} 회</td>
+                        <td style="text-align: center;">${penaltyDisplay}</td>
                         <td style="padding-right: 0.75rem; text-align: center;">${statusText}</td>
                     `;
                     tbody.appendChild(tr);
@@ -910,7 +915,6 @@
             const q = query(logsCol, where("memberId", "==", memberId));
             const snap = await getDocs(q);
             
-            // 회원 정보에서 목표 페이스 가져오기
             const memberRef = doc(db, "members", memberId);
             const memberDoc = await getDoc(memberRef);
             
@@ -925,29 +929,78 @@
             let totalDist = 0; 
             let totalSeconds = 0;
             let count = 0;
-            let cumulativePenalty = 0;
             
+            const weeklyData = {};
+            let firstLogDate = null;
+
             snap.forEach(l => {
                 const data = l.data();
                 const dist = data.distance || 0;
-                totalDist += dist;
-                count += 1;
+                const logDateStr = data.date;
+                const logDate = new Date(logDateStr);
                 
-                // 페이스 문자열(M'SS")에서 초 계산
+                if (!firstLogDate || logDate < firstLogDate) {
+                    firstLogDate = new Date(logDate);
+                }
+
+                // 해당 날짜의 월요일 구하기
+                const d = new Date(logDateStr);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                const monday = new Date(d.setDate(diff));
+                monday.setHours(0,0,0,0);
+                const weekKey = monday.toISOString().split('T')[0];
+
+                if (!weeklyData[weekKey]) {
+                    weeklyData[weekKey] = { dist: 0, seconds: 0, count: 0 };
+                }
+                weeklyData[weekKey].dist += dist;
+                weeklyData[weekKey].count += 1;
+
                 const paceMatch = (data.pace || "").match(/(\d+)'(\d+)"/);
                 if (paceMatch) {
                     const mm = parseInt(paceMatch[1]);
                     const ss = parseInt(paceMatch[2]);
                     const currentLogPaceSec = mm * 60 + ss;
-                    // 거리 * 초/km = 해당 활동의 총 소요 시간(초)
-                    totalSeconds += currentLogPaceSec * dist;
+                    const logTotalSec = currentLogPaceSec * dist;
+                    weeklyData[weekKey].seconds += logTotalSec;
+                    totalSeconds += logTotalSec;
+                }
+                totalDist += dist;
+                count += 1;
+            });
 
-                    // 개별 기록이 목표 페이스보다 느릴 경우 누적 벌금 카운트
-                    if (targetPaceSec > 0 && currentLogPaceSec > targetPaceSec) {
+            let cumulativePenalty = 0;
+            if (firstLogDate) {
+                // 첫 로그가 있는 주의 월요일부터 이번 주 월요일까지 전체 주차 계산
+                const today = new Date();
+                const tDay = today.getDay();
+                const tDiff = today.getDate() - tDay + (tDay === 0 ? -6 : 1);
+                const currentMonday = new Date(new Date(today).setDate(tDiff));
+                currentMonday.setHours(0,0,0,0);
+
+                const iterDate = new Date(firstLogDate);
+                const iDay = iterDate.getDay();
+                const iDiff = iterDate.getDate() - iDay + (iDay === 0 ? -6 : 1);
+                iterDate.setDate(iDiff);
+                iterDate.setHours(0,0,0,0);
+
+                while (iterDate <= currentMonday) {
+                    const weekKey = iterDate.toISOString().split('T')[0];
+                    const w = weeklyData[weekKey] || { dist: 0, seconds: 0, count: 0 };
+                    
+                    const wAvgPaceSec = w.dist > 0 ? w.seconds / w.dist : 0;
+                    
+                    const distMet = w.dist >= (mData.minDistance || 0);
+                    const paceMet = targetPaceSec === 0 || (wAvgPaceSec > 0 && wAvgPaceSec <= targetPaceSec);
+                    const countMet = w.count >= (mData.weeklyCount || 0);
+
+                    if (!distMet || !paceMet || !countMet) {
                         cumulativePenalty++;
                     }
+                    iterDate.setDate(iterDate.getDate() + 7);
                 }
-            });
+            }
             
             const avgPaceSeconds = totalDist > 0 ? totalSeconds / totalDist : 0;
             const avgPaceStr = formatPace(avgPaceSeconds);

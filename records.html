@@ -266,43 +266,7 @@
                 if (memberDoc.exists()) {
                     const current = memberDoc.data();
                     
-                    // 신규 기록이 벌금인지 확인
-                    const targetPaceSec = (current.paceMin || 0) * 60 + (current.paceSec || 0);
-                    const paceMatch = newPace.match(/(\d+)'(\d+)"/);
-                    let isPenalty = false;
-                    if (paceMatch && targetPaceSec > 0) {
-                        const mm = parseInt(paceMatch[1]);
-                        const ss = parseInt(paceMatch[2]);
-                        if ((mm * 60 + ss) > targetPaceSec) {
-                            isPenalty = true;
-                        }
-                    }
-
-                    // 누적 평균 페이스 계산
-                    const updatedDist = Number(((current.distance || 0) + newDist).toFixed(1));
-                    const updatedTime = Number(((current.totalTime || 0) + additionalMinutes).toFixed(1));
-                    
-                    let avgPaceStr = "0'00\"";
-                    if (updatedDist > 0) {
-                        const totalSeconds = updatedTime * 60;
-                        const secondsPerKm = totalSeconds / updatedDist;
-                        const paceMin = Math.floor(secondsPerKm / 60);
-                        const paceSec = Math.round(secondsPerKm % 60);
-                        const finalMin = paceSec === 60 ? paceMin + 1 : paceMin;
-                        const finalSec = paceSec === 60 ? 0 : paceSec;
-                        avgPaceStr = `${finalMin}'${String(finalSec).padStart(2, '0')}"`;
-                    }
-
-                    // 기존 값에 더하기 (누적 업데이트)
-                    await updateDoc(memberRef, {
-                        distance: updatedDist,
-                        count: (current.count || 0) + 1,
-                        totalTime: updatedTime,
-                        pace: avgPaceStr,
-                        cumulativePenalty: (current.cumulativePenalty || 0) + (isPenalty ? 1 : 0)
-                    });
-
-                    // 히스토리 로그 기록 (activity_logs 컬렉션)
+                    // 기존 값에 더하기 대신 전체 재계산 호출
                     await addDoc(collection(db, "activity_logs"), {
                         memberId: memberId,
                         memberName: current.name,
@@ -312,6 +276,9 @@
                         location: location,
                         timestamp: serverTimestamp()
                     });
+
+                    // 통계 및 벌금 재계산
+                    await recalculateMemberStats(memberId);
 
                     alert(`${current.name}님의 기록이 저장되었습니다.`);
                     window.closeRecordModal();
@@ -323,6 +290,111 @@
                 alert("저장 실패: " + e.message);
             }
         };
+
+        async function recalculateMemberStats(memberId) {
+            const logsQuery = query(collection(db, "activity_logs"), where("memberId", "==", memberId));
+            const snap = await getDocs(logsQuery);
+            
+            const memberRef = doc(db, "members", memberId);
+            const memberDoc = await getDoc(memberRef);
+            if (!memberDoc.exists()) return;
+
+            const mData = memberDoc.data();
+            const targetPaceSec = (mData.paceMin || 0) * 60 + (mData.paceSec || 0);
+
+            let totalDist = 0; 
+            let totalSeconds = 0;
+            let count = 0;
+            
+            const weeklyData = {};
+            let firstLogDate = null;
+
+            snap.forEach(l => {
+                const data = l.data();
+                const dist = data.distance || 0;
+                const logDateStr = data.date;
+                const logDate = new Date(logDateStr);
+                
+                if (!firstLogDate || logDate < firstLogDate) {
+                    firstLogDate = new Date(logDate);
+                }
+
+                const d = new Date(logDateStr);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                const monday = new Date(d.setDate(diff));
+                monday.setHours(0,0,0,0);
+                const weekKey = monday.toISOString().split('T')[0];
+
+                if (!weeklyData[weekKey]) {
+                    weeklyData[weekKey] = { dist: 0, seconds: 0, count: 0 };
+                }
+                weeklyData[weekKey].dist += dist;
+                weeklyData[weekKey].count += 1;
+
+                const paceMatch = (data.pace || "").match(/(\d+)'(\d+)"/);
+                if (paceMatch) {
+                    const mm = parseInt(paceMatch[1]);
+                    const ss = parseInt(paceMatch[2]);
+                    const logTotalSec = (mm * 60 + ss) * dist;
+                    weeklyData[weekKey].seconds += logTotalSec;
+                    totalSeconds += logTotalSec;
+                }
+                totalDist += dist;
+                count += 1;
+            });
+
+            let cumulativePenalty = 0;
+            if (firstLogDate) {
+                const today = new Date();
+                const tDay = today.getDay();
+                const tDiff = today.getDate() - tDay + (tDay === 0 ? -6 : 1);
+                const currentMonday = new Date(new Date(today).setDate(tDiff));
+                currentMonday.setHours(0,0,0,0);
+
+                const iterDate = new Date(firstLogDate);
+                const iDay = iterDate.getDay();
+                const iDiff = iterDate.getDate() - iDay + (iDay === 0 ? -6 : 1);
+                iterDate.setDate(iDiff);
+                iterDate.setHours(0,0,0,0);
+
+                while (iterDate <= currentMonday) {
+                    const weekKey = iterDate.toISOString().split('T')[0];
+                    const w = weeklyData[weekKey] || { dist: 0, seconds: 0, count: 0 };
+                    
+                    const wAvgPaceSec = w.dist > 0 ? w.seconds / w.dist : 0;
+                    
+                    const distMet = w.dist >= (mData.minDistance || 0);
+                    const paceMet = targetPaceSec === 0 || (wAvgPaceSec > 0 && wAvgPaceSec <= targetPaceSec);
+                    const countMet = w.count >= (mData.weeklyCount || 0);
+
+                    if (!distMet || !paceMet || !countMet) {
+                        cumulativePenalty++;
+                    }
+                    iterDate.setDate(iterDate.getDate() + 7);
+                }
+            }
+
+            const avgPaceSeconds = totalDist > 0 ? totalSeconds / totalDist : 0;
+            const avgPaceStr = formatPace(avgPaceSeconds);
+
+            await updateDoc(memberRef, { 
+                distance: Number(totalDist.toFixed(1)), 
+                count: count,
+                totalTime: Number((totalSeconds / 60).toFixed(1)),
+                pace: avgPaceStr,
+                cumulativePenalty: cumulativePenalty
+            });
+        }
+
+        function formatPace(secondsPerKm) {
+            if (!secondsPerKm || isNaN(secondsPerKm)) return "0'00\"";
+            const m = Math.floor(secondsPerKm / 60);
+            const s = Math.round(secondsPerKm % 60);
+            const finalM = s === 60 ? m + 1 : m;
+            const finalS = s === 60 ? 0 : s;
+            return `${finalM}'${String(finalS).padStart(2, '0')}"`;
+        }
 
         // 배경 클릭 시 팝업 닫기
         document.getElementById('record-modal-overlay').onclick = (e) => {
