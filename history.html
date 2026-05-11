@@ -925,10 +925,12 @@
 
             const mData = memberDoc.data();
             const targetPaceSec = (mData.paceMin || 0) * 60 + (mData.paceSec || 0);
+            const minDistance = mData.minDistance || 0;
 
             let totalDist = 0; 
             let totalSeconds = 0;
             let count = 0;
+            let cumulativePenalty = 0; // 벌금 횟수는 0으로 시작
             
             const weeklyData = {};
             let firstLogDate = null;
@@ -937,14 +939,15 @@
                 const data = l.data();
                 const dist = data.distance || 0;
                 const logDateStr = data.date;
-                const logDate = new Date(logDateStr);
+                // 'T00:00:00'을 추가하여 로컬 시간(KST) 기준으로 처리
+                const logDate = new Date(logDateStr + 'T00:00:00');
                 
                 if (!firstLogDate || logDate < firstLogDate) {
                     firstLogDate = new Date(logDate);
                 }
 
                 // 해당 날짜의 월요일 구하기
-                const d = new Date(logDateStr);
+                const d = new Date(logDate);
                 const day = d.getDay();
                 const diff = d.getDate() - day + (day === 0 ? -6 : 1);
                 const monday = new Date(d.setDate(diff));
@@ -952,16 +955,21 @@
                 const weekKey = monday.toISOString().split('T')[0];
 
                 if (!weeklyData[weekKey]) {
-                    weeklyData[weekKey] = { dist: 0, seconds: 0, count: 0 };
+                    weeklyData[weekKey] = { dist: 0, seconds: 0 };
                 }
                 weeklyData[weekKey].dist += dist;
-                weeklyData[weekKey].count += 1;
 
                 const paceMatch = (data.pace || "").match(/(\d+)'(\d+)"/);
                 if (paceMatch) {
                     const mm = parseInt(paceMatch[1]);
                     const ss = parseInt(paceMatch[2]);
                     const currentLogPaceSec = mm * 60 + ss;
+                    
+                    // 1. 개별 기록 페이스 벌금: 등록한 페이스가 목표 페이스보다 느릴 경우
+                    if (targetPaceSec > 0 && currentLogPaceSec > targetPaceSec) {
+                        cumulativePenalty++;
+                    }
+
                     const logTotalSec = currentLogPaceSec * dist;
                     weeklyData[weekKey].seconds += logTotalSec;
                     totalSeconds += logTotalSec;
@@ -970,9 +978,8 @@
                 count += 1;
             });
 
-            let cumulativePenalty = 0;
             if (firstLogDate) {
-                // 첫 로그가 있는 주의 월요일부터 이번 주 월요일까지 전체 주차 계산
+                // 2. 주간 거리 벌금: 월~일 기준 목표 거리 미달 시
                 const today = new Date();
                 const tDay = today.getDay();
                 const tDiff = today.getDate() - tDay + (tDay === 0 ? -6 : 1);
@@ -985,17 +992,11 @@
                 iterDate.setDate(iDiff);
                 iterDate.setHours(0,0,0,0);
 
-                while (iterDate <= currentMonday) {
+                while (iterDate < currentMonday) {
                     const weekKey = iterDate.toISOString().split('T')[0];
-                    const w = weeklyData[weekKey] || { dist: 0, seconds: 0, count: 0 };
+                    const w = weeklyData[weekKey] || { dist: 0 };
                     
-                    const wAvgPaceSec = w.dist > 0 ? w.seconds / w.dist : 0;
-                    
-                    const distMet = w.dist >= (mData.minDistance || 0);
-                    const paceMet = targetPaceSec === 0 || (wAvgPaceSec > 0 && wAvgPaceSec <= targetPaceSec);
-                    const countMet = w.count >= (mData.weeklyCount || 0);
-
-                    if (!distMet || !paceMet || !countMet) {
+                    if (w.dist < minDistance) {
                         cumulativePenalty++;
                     }
                     iterDate.setDate(iterDate.getDate() + 7);
@@ -1005,6 +1006,11 @@
             const avgPaceSeconds = totalDist > 0 ? totalSeconds / totalDist : 0;
             const avgPaceStr = formatPace(avgPaceSeconds);
             const totalTimeMinutes = totalSeconds / 60;
+
+            // [사용자 요청] 특정 회원은 벌금을 0으로 초기화/예외 처리
+            if (mData.name === '양영관' || mData.name === '이보람') {
+                cumulativePenalty = 0;
+            }
 
             await updateDoc(doc(db, "members", memberId), { 
                 distance: Number(totalDist.toFixed(1)), 
